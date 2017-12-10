@@ -42,7 +42,7 @@ macro_rules! endian_method {
 /// Extends `digest::Input` to provide primitives for type-safe hashing.
 ///
 /// `EndianInput` provides methods to process machine-independent values
-/// of widths larger than 8-bit.
+/// of bit widths larger than 8 bit.
 /// The trait is parameterized with a byte order which determines the
 /// "endianness" of how the integer and floating-point values are going to
 /// be serialized for digest computation.
@@ -78,7 +78,9 @@ impl<T> EndianInput<BigEndian> for T where T: digest::Input {}
 /// This trait is similar to `std::hash::Hash`, with some differences:
 ///
 /// - The byte order for representation of multi-byte values is determined
-///   by the trait parameter.
+///   by the trait parameter. This enables byte order specific hashing or
+///   only allowing a specific byte order. Most implementations, though,
+///   should be generic over the byte order.
 /// - The choice of provided trait implementations discourages hashing of
 ///   machine-dependent types, or types without an unambiguous byte stream
 ///   representation.
