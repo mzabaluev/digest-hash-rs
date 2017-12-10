@@ -11,7 +11,7 @@
 extern crate digest;
 extern crate byteorder;
 
-use byteorder::{ByteOrder, BigEndian, LittleEndian};
+use byteorder::ByteOrder;
 
 use std::mem;
 use std::rc::Rc;
@@ -33,7 +33,7 @@ macro_rules! for_all_mi_words {
 
 macro_rules! endian_method {
     ($t:ty, $name:ident, $bo_func:ident) => {
-        fn $name(&mut self, n: $t) {
+        fn $name<Bo: ByteOrder>(&mut self, n: $t) {
             let mut buf: [u8; mem::size_of::<$t>()]
                          = unsafe { mem::uninitialized() };
             Bo::$bo_func(&mut buf, n);
@@ -46,23 +46,23 @@ macro_rules! endian_method {
 ///
 /// `EndianInput` provides methods to process machine-independent values
 /// of bit widths larger than 8 bit.
-/// The trait is parameterized with a byte order which determines the
+/// The methods are parameterized with a byte order which determines the
 /// "endianness" of how the integer and floating-point values are going to
 /// be serialized for digest computation.
-pub trait EndianInput<Bo> : digest::Input
-    where Bo: ByteOrder
-{
+pub trait EndianInput : digest::Input {
 
     /// Feeds an unsigned 8-bit value into the digest function.
     ///
-    /// This method is provided for completeness.
+    /// This method is agnostic to the byte order, and is only provided
+    /// for completeness.
     fn process_u8(&mut self, n: u8) {
         self.process(&[n]);
     }
 
     /// Feeds a signed 8-bit value into the digest function.
     ///
-    /// This method is provided for completeness.
+    /// This method is agnostic to the byte order, and is only provided
+    /// for completeness.
     fn process_i8(&mut self, n: i8) {
         self.process(&[n as u8]);
     }
@@ -73,8 +73,7 @@ pub trait EndianInput<Bo> : digest::Input
 
 // Blanket impl for all digest functions. This makes it impossible to
 // implement the trait for anything else.
-impl<T> EndianInput<LittleEndian> for T where T: digest::Input {}
-impl<T> EndianInput<BigEndian> for T where T: digest::Input {}
+impl<T> EndianInput for T where T: digest::Input {}
 
 /// A cryptographically hashable type.
 ///
@@ -99,16 +98,26 @@ pub trait Hash<Bo: ByteOrder> {
     /// For multi-byte values, the byte order is selected by the
     /// trait parameter.
     fn hash<H>(&self, digest: &mut H)
-        where H: EndianInput<Bo>;
+        where H: EndianInput;
 }
 
 macro_rules! impl_hash_for {
     {
-        ($self:ident: &$t:ty, $digest:ident) $body:block
+        ($self:ident: &$t:ty, $digest:ident, $Bo:ident)
+        $body:block
     } => {
-        impl<Bo: ByteOrder> Hash<Bo> for $t {
+        impl<$Bo: ByteOrder> Hash<$Bo> for $t {
             fn hash<H>(&$self, $digest: &mut H)
-                where H: EndianInput<Bo>
+                where H: EndianInput
+            $body
+        }
+    };
+    {
+        ($self:ident: &$t:ty, $digest:ident)
+        $body:block
+    } => {
+        impl_hash_for! {
+            ($self: &$t, $digest, Bo)
             $body
         }
     }
@@ -117,8 +126,8 @@ macro_rules! impl_hash_for {
 macro_rules! impl_hash_for_mi_word {
     ($t:ty, $method:ident, $_bo_func:ident) => {
         impl_hash_for! {
-            (self: &$t, digest) {
-                digest.$method(*self);
+            (self: &$t, digest, Bo) {
+                digest.$method::<Bo>(*self);
             }
         }
     }
@@ -130,7 +139,7 @@ for_all_mi_words!(T, method, bo_func:
 impl<Bo: ByteOrder> Hash<Bo> for u8 {
 
     fn hash<H>(&self, digest: &mut H)
-        where H: EndianInput<Bo>
+        where H: EndianInput
     {
         digest.process_u8(*self);
     }
@@ -139,7 +148,7 @@ impl<Bo: ByteOrder> Hash<Bo> for u8 {
 impl<Bo: ByteOrder> Hash<Bo> for i8 {
 
     fn hash<H>(&self, digest: &mut H)
-        where H: EndianInput<Bo>
+        where H: EndianInput
     {
         digest.process_i8(*self);
     }
@@ -181,7 +190,7 @@ impl<'a, T: ?Sized, Bo> Hash<Bo> for &'a T
           T: Hash<Bo>
 {
     fn hash<H>(&self, digest: &mut H)
-        where H: EndianInput<Bo>
+        where H: EndianInput
     {
         (*self).hash::<H>(digest);
     }
@@ -194,7 +203,7 @@ macro_rules! impl_hash_for_gen_pointer {
                   $T: Hash<Bo>
         {
             fn hash<H>(&self, digest: &mut H)
-                where H: EndianInput<Bo>
+                where H: EndianInput
             {
                 (**self).hash::<H>(digest);
             }
@@ -213,7 +222,7 @@ impl<'a, B: ?Sized, Bo> Hash<Bo> for Cow<'a, B>
           B::Owned: Hash<Bo>
 {
     fn hash<H>(&self, digest: &mut H)
-        where H: EndianInput<Bo>
+        where H: EndianInput
     {
         match *self {
             Cow::Borrowed(b)  => b.hash::<H>(digest),
