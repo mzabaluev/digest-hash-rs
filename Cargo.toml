@@ -3,6 +3,9 @@ name = "digest-hash"
 version = "0.0.1-dev"
 description = "Cryptography-grade data structure hashing"
 authors = ["Mikhail Zabaluev <mikhail.zabaluev@gmail.com>"]
+license = "Apache-2.0/MIT"
+repository = "https://github.com/mzabaluev/digest-hash-rs"
+readme = "README.md"
 
 [dependencies]
 digest = "0.7"
