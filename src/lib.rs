@@ -12,6 +12,7 @@ extern crate digest;
 extern crate byteorder;
 
 use byteorder::ByteOrder;
+use digest::generic_array::GenericArray;
 
 use std::fmt;
 use std::fmt::Debug;
@@ -124,6 +125,22 @@ impl<D, Bo> digest::Input for Endian<D, Bo>
     where D: digest::Input
 {
     fn process(&mut self, input: &[u8]) { self.inner.process(input) }
+}
+
+impl<D, Bo> digest::BlockInput for Endian<D, Bo>
+    where D: digest::BlockInput
+{
+    type BlockSize = D::BlockSize;
+}
+
+impl<D, Bo> digest::FixedOutput for Endian<D, Bo>
+    where D: digest::FixedOutput
+{
+    type OutputSize = D::OutputSize;
+
+    fn fixed_result(self) -> GenericArray<u8, Self::OutputSize> {
+        self.inner.fixed_result()
+    }
 }
 
 impl<D, Bo> Endian<D, Bo>
