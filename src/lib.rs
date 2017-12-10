@@ -428,7 +428,7 @@ mod tests {
     mod hash {
         use Hash;
 
-        use {BigEndian, LittleEndian};
+        use {BigEndian, LittleEndian, EndianInput};
         use super::MockDigest;
         use super::conv_with;
 
@@ -522,5 +522,148 @@ mod tests {
             f32_be_hash, f32_le_hash, f32::consts::PI);
         test_float_hash!(
             f64_be_hash, f64_le_hash, f64::consts::PI);
+
+        #[test]
+        fn u8_slice_hash() {
+            const TEST_DATA: &[u8] = &[b'A', b'B', b'C'];
+            let mut hasher = BigEndian::<MockDigest>::new();
+            (*TEST_DATA).hash(&mut hasher);
+            let output = hasher.into_inner().bytes;
+            assert_eq!(output, TEST_DATA);
+        }
+
+        #[test]
+        fn i8_slice_hash() {
+            const TEST_DATA: &[i8] = &[-128, -127, -126];
+            let mut hasher = BigEndian::<MockDigest>::new();
+            (*TEST_DATA).hash(&mut hasher);
+            let output = hasher.into_inner().bytes;
+            let expected: Vec<_> = TEST_DATA.iter()
+                                            .map(|c| { *c as u8 })
+                                            .collect();
+            assert_eq!(output, expected);
+        }
+
+        #[test]
+        fn u8_vec_hash() {
+            let test_vec = vec![b'A', b'B', b'C'];
+            let mut hasher = BigEndian::<MockDigest>::new();
+            test_vec.hash(&mut hasher);
+            let output = hasher.into_inner().bytes;
+            assert_eq!(output, test_vec);
+        }
+
+        #[test]
+        fn i8_vec_hash() {
+            let test_vec = vec![-128i8, -127i8, -126i8];
+            let mut hasher = BigEndian::<MockDigest>::new();
+            test_vec.hash(&mut hasher);
+            let output = hasher.into_inner().bytes;
+            let expected: Vec<_> = test_vec.iter()
+                                           .map(|c| { *c as u8 })
+                                           .collect();
+            assert_eq!(output, expected);
+        }
+
+        #[test]
+        fn str_hash() {
+            const TEST_DATA: &str = "Hello";
+            let mut hasher = BigEndian::<MockDigest>::new();
+            (*TEST_DATA).hash(&mut hasher);
+            let output = hasher.into_inner().bytes;
+            assert_eq!(output, TEST_DATA.as_bytes());
+        }
+
+        #[test]
+        fn string_hash() {
+            let test_str = String::from("Hello");
+            let mut hasher = BigEndian::<MockDigest>::new();
+            test_str.hash(&mut hasher);
+            let output = hasher.into_inner().bytes;
+            assert_eq!(output, test_str.as_bytes());
+        }
+
+        struct Hashable {
+            foo: u16,
+            bar: i32
+        }
+
+        impl Hash for Hashable {
+            fn hash<H: EndianInput>(&self, digest: &mut H) {
+                self.foo.hash(digest);
+                self.bar.hash(digest);
+            }
+        }
+
+        #[test]
+        fn custom_be_hash() {
+            let v = Hashable { foo: 0x0102, bar: 0x03040506 };
+            let mut hasher = BigEndian::<MockDigest>::new();
+            v.hash(&mut hasher);
+            let output = hasher.into_inner().bytes;
+            assert_eq!(output, [0x01, 0x02, 0x03, 0x04, 0x05, 0x06]);
+        }
+
+        #[test]
+        fn custom_le_hash() {
+            let v = Hashable { foo: 0x0102, bar: 0x03040506 };
+            let mut hasher = LittleEndian::<MockDigest>::new();
+            v.hash(&mut hasher);
+            let output = hasher.into_inner().bytes;
+            assert_eq!(output, [0x02, 0x01, 0x06, 0x05, 0x04, 0x03]);
+        }
+
+        fn test_generic_impl<T: Hash>(v: &T, expected: &[u8]) {
+            let mut hasher = BigEndian::<MockDigest>::new();
+            v.hash(&mut hasher);
+            let output = hasher.into_inner().bytes;
+            assert_eq!(output, expected);
+        }
+
+        #[test]
+        fn ref_hash() {
+            let v = Hashable { foo: 0x0102, bar: 0x03040506 };
+            test_generic_impl(&v, &[0x01, 0x02, 0x03, 0x04, 0x05, 0x06]);
+        }
+
+        #[test]
+        fn box_hash() {
+            let v = Box::new(Hashable { foo: 0x0102, bar: 0x03040506 });
+            test_generic_impl(&v, &[0x01, 0x02, 0x03, 0x04, 0x05, 0x06]);
+        }
+
+        #[test]
+        fn rc_hash() {
+            use std::rc::Rc;
+
+            let v = Rc::new(Hashable { foo: 0x0102, bar: 0x03040506 });
+            test_generic_impl(&v, &[0x01, 0x02, 0x03, 0x04, 0x05, 0x06]);
+        }
+
+        #[test]
+        fn arc_hash() {
+            use std::sync::Arc;
+
+            let v = Arc::new(Hashable { foo: 0x0102, bar: 0x03040506 });
+            test_generic_impl(&v, &[0x01, 0x02, 0x03, 0x04, 0x05, 0x06]);
+        }
+
+        #[test]
+        fn cow_borrowed_hash() {
+            let cow = String::from_utf8_lossy(b"Hello");
+            let mut hasher = BigEndian::<MockDigest>::new();
+            cow.hash(&mut hasher);
+            let output = hasher.into_inner().bytes;
+            assert_eq!(output, cow.as_bytes());
+        }
+
+        #[test]
+        fn cow_owned_hash() {
+            let cow = String::from_utf8_lossy(b"Hello\xFF");
+            let mut hasher = BigEndian::<MockDigest>::new();
+            cow.hash(&mut hasher);
+            let output = hasher.into_inner().bytes;
+            assert_eq!(output, cow.as_bytes());
+        }
     }
 }
