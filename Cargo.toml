@@ -8,3 +8,5 @@ authors = ["Mikhail Zabaluev <mikhail.zabaluev@gmail.com>"]
 digest = "0.7"
 byteorder = "1.2"
 
+[dev-dependencies]
+sha2 = "0.7"
