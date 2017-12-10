@@ -1,0 +1,10 @@
+[package]
+name = "digest-hash"
+version = "0.0.1-dev"
+description = "Cryptography-grade data structure hashing"
+authors = ["Mikhail Zabaluev <mikhail.zabaluev@gmail.com>"]
+
+[dependencies]
+digest = "0.7"
+byteorder = "1.2"
+
