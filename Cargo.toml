@@ -1,6 +1,6 @@
 [package]
 name = "digest-hash"
-version = "0.0.1-dev"
+version = "0.0.1"
 description = "Cryptography-grade data structure hashing"
 authors = ["Mikhail Zabaluev <mikhail.zabaluev@gmail.com>"]
 license = "Apache-2.0/MIT"
