@@ -13,6 +13,8 @@ extern crate byteorder;
 
 use byteorder::ByteOrder;
 
+use std::fmt;
+use std::fmt::Debug;
 use std::marker;
 use std::mem;
 use std::rc::Rc;
@@ -90,6 +92,26 @@ pub type BigEndian<D> = Endian<D, byteorder::BigEndian>;
 
 /// A type alias for `Endian` specialized for little endian byte order.
 pub type LittleEndian<D> = Endian<D, byteorder::LittleEndian>;
+
+impl<D, Bo> Debug for Endian<D, Bo>
+    where D: Debug,
+          Bo: ByteOrder
+{
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        // Do a bit of runtime testing.
+        let mut buf = [0u8; 2];
+        Bo::write_u16(&mut buf, 0x0100);
+        let endianness = match buf[0] {
+            0x01 => "BigEndian",
+            0x00 => "LittleEndian",
+            _ => unreachable!()
+        };
+
+        f.debug_struct(endianness)
+         .field("digest", &self.inner)
+         .finish()
+    }
+}
 
 impl<D, Bo> EndianInput for Endian<D, Bo>
     where D: digest::Input,
@@ -283,6 +305,7 @@ mod tests {
 
     use digest;
 
+    #[derive(Debug)]
     struct MockDigest {
         bytes: Vec<u8>
     }
@@ -330,6 +353,24 @@ mod tests {
 
         use std::mem;
         use std::{f32, f64};
+
+        macro_rules! test_endian_debug {
+            (   $test:ident,
+                $Endian:ident) =>
+            {
+                #[test]
+                fn $test() {
+                     let hasher = $Endian::<MockDigest>::new();
+                     let repr = format!("{:?}", hasher);
+                     assert!(repr.starts_with(stringify!($Endian)));
+                     assert!(repr.contains("MockDigest"));
+                     assert!(!repr.contains("PhantomData"));
+                }
+            }
+        }
+
+        test_endian_debug!(debug_be, BigEndian);
+        test_endian_debug!(debug_le, LittleEndian);
 
         macro_rules! test_endian_input {
             (   $test:ident,
