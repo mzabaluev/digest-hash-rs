@@ -6,6 +6,8 @@ authors = ["Mikhail Zabaluev <mikhail.zabaluev@gmail.com>"]
 license = "Apache-2.0/MIT"
 repository = "https://github.com/mzabaluev/digest-hash-rs"
 readme = "README.md"
+categories = ["cryptography", "data-structures"]
+keywords = ["crypto", "digest", "hash"]
 
 [dependencies]
 digest = "0.7"
