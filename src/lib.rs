@@ -49,16 +49,15 @@ macro_rules! endian_method {
 /// Extends `digest::Input` to provide primitives for type-safe hashing.
 ///
 /// `EndianInput` provides methods to process machine-independent values
-/// of bit widths larger than 8 bit.
-/// The methods are parameterized with a byte order which determines the
-/// "endianness" of how the integer and floating-point values are going to
-/// be serialized for digest computation.
+/// of bit widths larger than 8 bit. The values are serialized with the
+/// byte order which is defined in the associated type `ByteOrder`.
 pub trait EndianInput : digest::Input {
 
     /// The byte order this implementation provides.
     ///
-    /// This type binding determines the "endianness" of how the integer
-    /// and floating-point values are serialized for digest computation.
+    /// This type binding determines the "endianness" of how integer
+    /// and floating-point values are serialized by this implementation
+    /// towards computation of the digest.
     type ByteOrder : ByteOrder;
 
     /// Feeds an unsigned 8-bit value into the digest function.
@@ -148,6 +147,18 @@ impl<D, Bo> Endian<D, Bo>
           D: Default,
           Bo: ByteOrder
 {
+    /// Constructs an instance of an endian-aware hasher.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # extern crate digest_hash;
+    /// # extern crate sha2;
+    /// # use sha2::Sha256;
+    /// # fn main() {
+    /// let hasher = digest_hash::BigEndian::<Sha256>::new();
+    /// # }
+    /// ```
     pub fn new() -> Self {
         Endian {
             inner: D::default(),
@@ -168,9 +179,8 @@ impl<D, Bo> From<D> for Endian<D, Bo>
     }
 }
 
-impl<D, Bo> Endian<D, Bo>
-    where D: digest::Input
-{
+impl<D, Bo> Endian<D, Bo> {
+    /// Consumes self and returns the underlying digest implementation.
     pub fn into_inner(self) -> D { self.inner }
 }
 
