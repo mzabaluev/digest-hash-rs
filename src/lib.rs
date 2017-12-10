@@ -14,6 +14,9 @@ extern crate byteorder;
 use byteorder::{ByteOrder, BigEndian, LittleEndian};
 
 use std::mem;
+use std::rc::Rc;
+use std::sync::Arc;
+use std::borrow::{Cow, ToOwned};
 
 macro_rules! for_all_mi_words {
     (T, method, bo_func : $macro:ident!(T, method, bo_func)) => {
@@ -111,7 +114,7 @@ macro_rules! impl_hash_for {
     }
 }
 
-macro_rules! impl_hash_for_primitive {
+macro_rules! impl_hash_for_mi_word {
     ($t:ty, $method:ident, $_bo_func:ident) => {
         impl_hash_for! {
             (self: &$t, digest) {
@@ -122,17 +125,23 @@ macro_rules! impl_hash_for_primitive {
 }
 
 for_all_mi_words!(T, method, bo_func:
-                  impl_hash_for_primitive!(T, method, bo_func));
+                  impl_hash_for_mi_word!(T, method, bo_func));
 
-impl<'a, T: ?Sized, Bo> Hash<Bo> for &'a T
-    where Bo: ByteOrder,
-          T: Hash<Bo>
-{
+impl<Bo: ByteOrder> Hash<Bo> for u8 {
+
     fn hash<H>(&self, digest: &mut H)
-        where H: EndianInput<Bo>,
-              Bo: ByteOrder
+        where H: EndianInput<Bo>
     {
-        (*self).hash::<H>(digest);
+        digest.process_u8(*self);
+    }
+}
+
+impl<Bo: ByteOrder> Hash<Bo> for i8 {
+
+    fn hash<H>(&self, digest: &mut H)
+        where H: EndianInput<Bo>
+    {
+        digest.process_i8(*self);
     }
 }
 
@@ -143,8 +152,9 @@ impl_hash_for! {
 }
 
 impl_hash_for! {
-    (self: &Box<[u8]>, digest) {
-        digest.process(self);
+    (self: &[i8], digest) {
+        let bytes: &[u8] = unsafe { mem::transmute(self) };
+        digest.process(bytes);
     }
 }
 
@@ -161,14 +171,53 @@ impl_hash_for! {
 }
 
 impl_hash_for! {
-    (self: &Box<str>, digest) {
-        digest.process(self.as_bytes());
-    }
-}
-
-impl_hash_for! {
     (self: &String, digest) {
         digest.process(self.as_bytes());
     }
 }
 
+impl<'a, T: ?Sized, Bo> Hash<Bo> for &'a T
+    where Bo: ByteOrder,
+          T: Hash<Bo>
+{
+    fn hash<H>(&self, digest: &mut H)
+        where H: EndianInput<Bo>
+    {
+        (*self).hash::<H>(digest);
+    }
+}
+
+macro_rules! impl_hash_for_gen_pointer {
+    ($Ptr:ident<$T:ident>) => {
+        impl<$T: ?Sized, Bo> Hash<Bo> for $Ptr<$T>
+            where Bo: ByteOrder,
+                  $T: Hash<Bo>
+        {
+            fn hash<H>(&self, digest: &mut H)
+                where H: EndianInput<Bo>
+            {
+                (**self).hash::<H>(digest);
+            }
+        }
+    }
+}
+
+impl_hash_for_gen_pointer!(Box<T>);
+impl_hash_for_gen_pointer!(Rc<T>);
+impl_hash_for_gen_pointer!(Arc<T>);
+
+impl<'a, B: ?Sized, Bo> Hash<Bo> for Cow<'a, B>
+    where Bo: ByteOrder,
+          B: Hash<Bo>,
+          B: ToOwned,
+          B::Owned: Hash<Bo>
+{
+    fn hash<H>(&self, digest: &mut H)
+        where H: EndianInput<Bo>
+    {
+        match *self {
+            Cow::Borrowed(b)  => b.hash::<H>(digest),
+            Cow::Owned(ref v) => v.hash::<H>(digest)
+        }
+    }
+}
