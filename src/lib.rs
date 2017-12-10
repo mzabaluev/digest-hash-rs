@@ -230,3 +230,135 @@ impl<'a, B: ?Sized, Bo> Hash<Bo> for Cow<'a, B>
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::EndianInput;
+
+    use byteorder::{BE, LE};
+    use digest;
+
+    use std::mem;
+    use std::{f32, f64};
+
+    struct MockDigest {
+        bytes: Vec<u8>
+    }
+
+    impl MockDigest {
+        fn new() -> Self {
+            MockDigest { bytes: Vec::new() }
+        }
+    }
+
+    impl digest::Input for MockDigest {
+        fn process(&mut self, input: &[u8]) {
+            self.bytes.extend_from_slice(input);
+        }
+    }
+
+    #[test]
+    fn u8_input() {
+        let mut hasher = MockDigest::new();
+        hasher.process_u8(0xA5);
+        assert_eq!(&hasher.bytes[..], [0xA5]);
+    }
+
+    #[test]
+    fn i8_input() {
+        let mut hasher = MockDigest::new();
+        hasher.process_i8(-128);
+        assert_eq!(&hasher.bytes[..], [128]);
+    }
+
+    macro_rules! bytes_from_endian {
+        ($val:expr) => {
+            {
+                let val = $val.to_le();
+                let n_bytes = mem::size_of_val(&val);
+                let bytes: Vec<_> =
+                        (0 .. n_bytes).map(|i| {
+                            ((val >> i * 8) & 0xFF) as u8
+                        })
+                        .collect();
+                bytes
+            }
+        }
+    }
+
+    fn conv_with<T, F, R>(v: T, f: F) -> R
+        where F: FnOnce(T) -> R
+    {
+        f(v)
+    }
+
+    macro_rules! test_word_input {
+        (   $test:ident,
+            $method:ident::<$Endian:path>,
+            $val:expr,
+            $to_endian_bits:expr) =>
+        {
+            #[test]
+            fn $test() {
+                let mut hasher = MockDigest::new();
+                hasher.$method::<$Endian>($val);
+                let val_bits = conv_with($val, $to_endian_bits);
+                let expected = bytes_from_endian!(val_bits);
+                assert_eq!(hasher.bytes, expected);
+            }
+        };
+
+        (   $be_test:ident,
+            $le_test:ident,
+            $method:ident,
+            $val:expr) =>
+        {
+            test_word_input!(
+                $be_test, $le_test, $method, $val,
+                |v| { v });
+        };
+
+        (   $be_test:ident,
+            $le_test:ident,
+            $method:ident,
+            $val:expr,
+            $conv:expr) =>
+        {
+            test_word_input!(
+                $be_test, $method::<BE>, $val,
+                |v| { conv_with(v, $conv).to_be() });
+            test_word_input!(
+                $le_test, $method::<LE>, $val,
+                |v| { conv_with(v, $conv).to_le() });
+        };
+    }
+
+    macro_rules! test_float_input {
+        (   $be_test:ident,
+            $le_test:ident,
+            $method:ident,
+            $val:expr) =>
+        {
+            test_word_input!(
+                $be_test, $le_test, $method, $val,
+                |v| { v.to_bits() });
+        }
+    }
+
+    test_word_input!(
+        u16_be_input, u16_le_input, process_u16, 0xA55Au16);
+    test_word_input!(
+        i16_be_input, i16_le_input, process_i16, -0x7FFEi16);
+    test_word_input!(
+        u32_be_input, u32_le_input, process_u32, 0xA0B0_C0D0u32);
+    test_word_input!(
+        i32_be_input, i32_le_input, process_i32, -0x7F01_02FDi32);
+    test_word_input!(
+        u64_be_input, u64_le_input, process_u64, 0xA0B0_C0D0_0102_0304u64);
+    test_word_input!(
+        i64_be_input, i64_le_input, process_i64, -0x7F01_0203_0405_FFFDi64);
+    test_float_input!(
+        f32_be_input, f32_le_input, process_f32, f32::consts::PI);
+    test_float_input!(
+        f64_be_input, f64_le_input, process_f64, f64::consts::PI);
+}
