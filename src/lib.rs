@@ -130,21 +130,30 @@ pub type BigEndian<D> = Endian<D, byteorder::BigEndian>;
 /// A type alias for `Endian` specialized for little endian byte order.
 pub type LittleEndian<D> = Endian<D, byteorder::LittleEndian>;
 
+impl<D, Bo> Endian<D, Bo>
+    where Bo: ByteOrder
+{
+    /// Returns a string describing the byte order used by this
+    /// `Endian` type instance.
+    /// This is mainly used for debugging purposes.
+    fn byte_order_str() -> &'static str {
+        // Do a bit of runtime testing.
+        let mut buf = [0u8; 2];
+        Bo::write_u16(&mut buf, 0x0100);
+        match buf[0] {
+            0x01 => "BigEndian",
+            0x00 => "LittleEndian",
+            _ => unreachable!()
+        }
+    }
+}
+
 impl<D, Bo> Debug for Endian<D, Bo>
     where D: Debug,
           Bo: ByteOrder
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        // Do a bit of runtime testing.
-        let mut buf = [0u8; 2];
-        Bo::write_u16(&mut buf, 0x0100);
-        let endianness = match buf[0] {
-            0x01 => "BigEndian",
-            0x00 => "LittleEndian",
-            _ => unreachable!()
-        };
-
-        f.debug_struct(endianness)
+        f.debug_struct(Self::byte_order_str())
          .field("digest", &self.inner)
          .finish()
     }
@@ -442,11 +451,13 @@ mod tests {
             {
                 #[test]
                 fn $test() {
-                     let hasher = $Endian::<MockDigest>::new();
-                     let repr = format!("{:?}", hasher);
-                     assert!(repr.starts_with(stringify!($Endian)));
-                     assert!(repr.contains("MockDigest"));
-                     assert!(!repr.contains("PhantomData"));
+                    assert_eq!($Endian::<MockDigest>::byte_order_str(),
+                               stringify!($Endian));
+                    let hasher = $Endian::<MockDigest>::new();
+                    let repr = format!("{:?}", hasher);
+                    assert!(repr.starts_with(stringify!($Endian)));
+                    assert!(repr.contains("MockDigest"));
+                    assert!(!repr.contains("PhantomData"));
                 }
             }
         }
