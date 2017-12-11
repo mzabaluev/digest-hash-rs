@@ -52,6 +52,8 @@ extern crate byteorder;
 use byteorder::ByteOrder;
 use digest::generic_array::{GenericArray, ArrayLength};
 
+pub use digest::generic_array;
+
 use std::fmt;
 use std::fmt::Debug;
 use std::marker;
