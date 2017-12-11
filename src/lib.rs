@@ -135,7 +135,9 @@ impl<D, Bo> Endian<D, Bo>
 {
     /// Returns a string describing the byte order used by this
     /// `Endian` type instance.
-    /// This is mainly used for debugging purposes.
+    ///
+    /// This is mainly used for debugging purposes. The user
+    /// should not rely on any particular output.
     pub fn byte_order_str() -> &'static str {
         // Do a bit of runtime testing.
         let mut buf = [0u8; 4];
