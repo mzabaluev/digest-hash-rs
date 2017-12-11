@@ -50,7 +50,7 @@ extern crate digest;
 extern crate byteorder;
 
 use byteorder::ByteOrder;
-use digest::generic_array::GenericArray;
+use digest::generic_array::{GenericArray, ArrayLength};
 
 use std::fmt;
 use std::fmt::Debug;
@@ -318,6 +318,26 @@ impl_hash_for! {
 impl_hash_for! {
     (self: &String, digest) {
         digest.process(self.as_bytes());
+    }
+}
+
+impl<N> Hash for GenericArray<u8, N>
+    where N: ArrayLength<u8>
+{
+    fn hash<H>(&self, digest: &mut H)
+        where H: EndianInput
+    {
+        digest.process(self);
+    }
+}
+
+impl<N> Hash for GenericArray<i8, N>
+    where N: ArrayLength<i8>
+{
+    fn hash<H>(&self, digest: &mut H)
+        where H: EndianInput
+    {
+        self.as_slice().hash(digest);
     }
 }
 
@@ -685,6 +705,25 @@ mod tests {
             let output = hasher.into_inner().bytes;
             assert_eq!(output, test_str.as_bytes());
         }
+
+        macro_rules! test_generic_array_hash {
+            ($test:ident, $bt:ty) => {
+                #[test]
+                fn $test() {
+                    use digest::generic_array::GenericArray;
+                    use digest::generic_array::typenum::consts::U4;
+
+                    let array = GenericArray::<$bt, U4>::generate(|n| { n as $bt });
+                    let mut hasher = BigEndian::<MockDigest>::new();
+                    array.hash(&mut hasher);
+                    let output = hasher.into_inner().bytes;
+                    assert_eq!(output, [0, 1, 2, 3]);
+                }
+            }
+        }
+
+        test_generic_array_hash!(generic_array_u8_hash, u8);
+        test_generic_array_hash!(generic_array_i8_hash, i8);
 
         struct Hashable {
             foo: u16,
