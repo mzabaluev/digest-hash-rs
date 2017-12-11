@@ -118,7 +118,7 @@ pub trait EndianInput : digest::Input {
 }
 
 /// An adapter to provide digest functions with endian-awareness.
-#[derive(Default, Clone)]
+#[derive(Clone)]
 pub struct Endian<D, Bo> {
     inner: D,
     phantom: marker::PhantomData<Bo>
@@ -223,6 +223,14 @@ impl<D, Bo> Endian<D, Bo>
             phantom: marker::PhantomData
         }
     }
+}
+
+impl<D, Bo> Default for Endian<D, Bo>
+    where D: digest::Input,
+          D: Default,
+          Bo: ByteOrder
+{
+    fn default() -> Self { Self::new() }
 }
 
 impl<D, Bo> From<D> for Endian<D, Bo>
@@ -448,7 +456,7 @@ mod tests {
     }
 
     mod endian {
-        use {BigEndian, LittleEndian};
+        use {BigEndian, LittleEndian, NetworkEndian};
         use EndianInput;
 
         use super::MockDigest;
@@ -456,6 +464,11 @@ mod tests {
 
         use std::mem;
         use std::{f32, f64};
+
+        #[test]
+        fn default_works() {
+            let _ = NetworkEndian::<MockDigest>::default();
+        }
 
         macro_rules! test_endian_debug {
             (   $test:ident,
