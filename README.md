@@ -39,6 +39,31 @@ use of them.
 Configuration of these choices is decoupled from type-specific `Serialize`
 implementations.
 
+Consider this scenario:
+
+```rust
+// crate a
+#[derive(Serialize)]
+pub struct A {
+     foo: char
+}
+
+// crate b
+extern crate a;
+#[derive(Serialize)]
+pub struct B {
+    bar: a::A
+}
+```
+
+An application wishing to calculate a hash of `B` through the hypothetical
+`Serializer` backend would have to be aware that the choice of how to hash
+the inner `char` would affect the result, even though the `char` is an
+implementation detail of `A` and may be not easily visible to the
+application developer: she'd have to either look at the source of `a`
+if that is available, or find it in a serialization dump of `B` made in
+a human-readable format.
+
 That said, a Serde backend to serialize arbitrary data structures for
 purposes of cryptographic hashing may be eventually provided, and its
 implementation can make use of the facilities provided by this crate.
