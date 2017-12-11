@@ -305,8 +305,7 @@ impl_hash_for! {
 
 impl_hash_for! {
     (self: &Vec<i8>, digest) {
-        let bytes: &[u8] = unsafe { mem::transmute(self.as_slice()) };
-        digest.process(bytes);
+        self.as_slice().hash(digest);
     }
 }
 
