@@ -130,6 +130,15 @@ pub type BigEndian<D> = Endian<D, byteorder::BigEndian>;
 /// A type alias for `Endian` specialized for little endian byte order.
 pub type LittleEndian<D> = Endian<D, byteorder::LittleEndian>;
 
+/// A type alias for `Endian` specialized for network byte order.
+///
+/// Network byte order is defined by [RFC 1700][rfc1700] to be big-endian,
+/// and is referred to in several protocol specifications.
+/// This type is an alias of `BigEndian`.
+///
+/// [rfc1700]: https://tools.ietf.org/html/rfc1700
+pub type NetworkEndian<D> = BigEndian<D>;
+
 impl<D, Bo> Endian<D, Bo>
     where Bo: ByteOrder
 {
