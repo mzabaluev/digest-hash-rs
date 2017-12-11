@@ -61,22 +61,22 @@ use std::sync::Arc;
 use std::borrow::{Cow, ToOwned};
 
 macro_rules! for_all_mi_words {
-    (T, method, bo_func : $macro:ident!(T, method, bo_func)) => {
-        $macro!(u16, process_u16, write_u16);
-        $macro!(i16, process_i16, write_i16);
-        $macro!(u32, process_u32, write_u32);
-        $macro!(i32, process_i32, write_i32);
-        $macro!(u64, process_u64, write_u64);
-        $macro!(i64, process_i64, write_i64);
-        $macro!(f32, process_f32, write_f32);
-        $macro!(f64, process_f64, write_f64);
+    ($macro:ident!) => {
+        $macro!(u16, 2, process_u16, write_u16);
+        $macro!(i16, 2, process_i16, write_i16);
+        $macro!(u32, 4, process_u32, write_u32);
+        $macro!(i32, 4, process_i32, write_i32);
+        $macro!(u64, 8, process_u64, write_u64);
+        $macro!(i64, 8, process_i64, write_i64);
+        $macro!(f32, 4, process_f32, write_f32);
+        $macro!(f64, 8, process_f64, write_f64);
     }
 }
 
 macro_rules! endian_method {
-    ($t:ty, $name:ident, $bo_func:ident) => {
+    ($t:ty, $size:expr, $name:ident, $bo_func:ident) => {
         fn $name(&mut self, n: $t) {
-            let mut buf: [u8; mem::size_of::<$t>()]
+            let mut buf: [u8; $size]
                          = unsafe { mem::uninitialized() };
             <Self::ByteOrder>::$bo_func(&mut buf, n);
             self.process(&buf);
@@ -114,8 +114,7 @@ pub trait EndianInput : digest::Input {
         self.process(&[n as u8]);
     }
 
-    for_all_mi_words!(T, method, bo_func:
-                      endian_method!(T, method, bo_func));
+    for_all_mi_words!(endian_method!);
 }
 
 /// An adapter to provide digest functions with endian-awareness.
@@ -258,7 +257,7 @@ macro_rules! impl_hash_for {
 }
 
 macro_rules! impl_hash_for_mi_word {
-    ($t:ty, $method:ident, $_bo_func:ident) => {
+    ($t:ty, $_size:expr, $method:ident, $_bo_func:ident) => {
         impl_hash_for! {
             (self: &$t, digest) {
                 digest.$method(*self);
@@ -267,8 +266,7 @@ macro_rules! impl_hash_for_mi_word {
     }
 }
 
-for_all_mi_words!(T, method, bo_func:
-                  impl_hash_for_mi_word!(T, method, bo_func));
+for_all_mi_words!(impl_hash_for_mi_word!);
 
 impl Hash for u8 {
     fn hash<H>(&self, digest: &mut H)
