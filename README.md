@@ -34,7 +34,7 @@ data representations. However, because it's a general-purpose framework,
 an implementation of `Serializer` suitable for cryptographic data signing
 and validation has to make data representation choices to accommodate
 Serde's universal data model, or come up with a strategy to handle unwanted
-or unsupported features should any `Serialize` implementation makes
+or unsupported features should any `Serialize` implementation make
 use of them.
 Configuration of these choices is decoupled from type-specific `Serialize`
 implementations.
@@ -47,7 +47,9 @@ Consider this scenario:
 pub struct A {
      foo: char
 }
+```
 
+```rust
 // crate b
 extern crate a;
 #[derive(Serialize)]
