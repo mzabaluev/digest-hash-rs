@@ -136,7 +136,7 @@ impl<D, Bo> Endian<D, Bo>
     /// Returns a string describing the byte order used by this
     /// `Endian` type instance.
     /// This is mainly used for debugging purposes.
-    fn byte_order_str() -> &'static str {
+    pub fn byte_order_str() -> &'static str {
         // Do a bit of runtime testing.
         let mut buf = [0u8; 2];
         Bo::write_u16(&mut buf, 0x0100);
