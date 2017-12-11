@@ -138,12 +138,13 @@ impl<D, Bo> Endian<D, Bo>
     /// This is mainly used for debugging purposes.
     pub fn byte_order_str() -> &'static str {
         // Do a bit of runtime testing.
-        let mut buf = [0u8; 2];
-        Bo::write_u16(&mut buf, 0x0100);
-        match buf[0] {
-            0x01 => "BigEndian",
-            0x00 => "LittleEndian",
-            _ => unreachable!()
+        let mut buf = [0u8; 4];
+        Bo::write_u32(&mut buf, 0x01020304);
+        let le = byteorder::LittleEndian::read_u32(&buf);
+        match le {
+            0x01020304 => "LittleEndian",
+            0x04030201 => "BigEndian",
+            _ => "unknown byte order"
         }
     }
 }
