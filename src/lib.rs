@@ -49,8 +49,6 @@
 pub extern crate digest;
 pub extern crate byteorder;
 
-pub use digest::generic_array;
-
 use byteorder::ByteOrder;
 use digest::generic_array::{GenericArray, ArrayLength};
 
