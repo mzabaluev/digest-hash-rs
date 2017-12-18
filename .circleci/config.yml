@@ -1,6 +1,6 @@
 version: 2
 jobs:
-  cargo_update:
+  cargo_fetch:
     docker:
       - image: rust:latest
     working_directory: /mnt/crate
@@ -9,7 +9,9 @@ jobs:
       - restore_cache:
           keys:
             - cargo-v1-{{ checksum "Cargo.toml" }}-
+            - cargo-v1-
       - run: cargo update
+      - run: cargo fetch
       - persist_to_workspace:
           root: "."
           paths:
@@ -132,16 +134,16 @@ workflows:
   version: 2
   test_all_and_coverage:
     jobs:
-      - cargo_update
+      - cargo_fetch
       - test:
           requires:
-            - cargo_update
+            - cargo_fetch
       - test_release:
           requires:
-            - cargo_update
+            - cargo_fetch
       - test_nightly:
           requires:
-            - cargo_update
+            - cargo_fetch
       - coverage:
           requires:
             - test
