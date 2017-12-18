@@ -1,6 +1,6 @@
 [package]
 name = "digest-hash"
-version = "0.0.4-dev"
+version = "0.1.0-rc1"
 description = "Cryptography-grade data structure hashing"
 authors = ["Mikhail Zabaluev <mikhail.zabaluev@gmail.com>"]
 license = "Apache-2.0/MIT"
@@ -8,6 +8,10 @@ repository = "https://github.com/mzabaluev/digest-hash-rs"
 readme = "README.md"
 categories = ["cryptography", "data-structures"]
 keywords = ["crypto", "digest", "hash"]
+
+[badges]
+circle-ci = { repository = "mzabaluev/digest-hash-rs" }
+codecov = { repository = "mzabaluev/digest-hash-rs" }
 
 [dependencies]
 digest = "0.7"
