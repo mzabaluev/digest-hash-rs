@@ -32,8 +32,6 @@ jobs:
       - restore_cache:
           keys:
             - cargo-v1-{{ checksum "Cargo.toml" }}-{{ checksum "Cargo.lock" }}
-            - cargo-v1-{{ checksum "Cargo.toml" }}-
-            - cargo-v1-
       - run:
           name: Print version information
           command: rustc --version; cargo --version
@@ -58,8 +56,6 @@ jobs:
       - restore_cache:
           keys:
             - cargo-v1-{{ checksum "Cargo.toml" }}-{{ checksum "Cargo.lock" }}
-            - cargo-v1-{{ checksum "Cargo.toml" }}-
-            - cargo-v1-
       - run:
           name: Print version information
           command: rustc --version; cargo --version
@@ -77,8 +73,6 @@ jobs:
       - restore_cache:
           keys:
             - cargo-v1-{{ checksum "Cargo.toml" }}-{{ checksum "Cargo.lock" }}
-            - cargo-v1-{{ checksum "Cargo.toml" }}-
-            - cargo-v1-
       - run:
           name: Print version information
           command: rustc --version; cargo --version
