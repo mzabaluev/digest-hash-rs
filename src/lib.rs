@@ -49,6 +49,9 @@
 pub extern crate digest;
 pub extern crate byteorder;
 
+#[path = "opinionated.rs"]
+pub mod personality;
+
 use byteorder::ByteOrder;
 use digest::generic_array::{GenericArray, ArrayLength};
 
