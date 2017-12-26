@@ -6,22 +6,66 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
+//! Helper functions for hashing data in a specific representation.
+//!
+//! The `Hash` trait implementations provided by this crate do not cover
+//! machine-dependent data types, or types for which data representation
+//! for calculating a digest is subject to implementer's choice.
+//! This module defines helper functions that provide an explicit,
+//! auditable way to select some commonly used representation choices.
+//!
+//! # Examples
+//!
+//! The recommended way to use the hash personality helper functions is to
+//! list them in `use` statements at the beginning of the module that provides
+//! `Hash` implementations using the functions. For convenience, the functions
+//! can be given short local names.
+//!
+//! ```
+//! use digest_hash::personality::hash_bool_as_byte             as hash_bool;
+//! use digest_hash::personality::hash_ip_addr_in_network_order as hash_ip_addr;
+//! use digest_hash::{Hash, EndianInput};
+//! use std::net::IpAddr;
+//!
+//! pub struct A {
+//!     addr: IpAddr,
+//!     foo: bool
+//! }
+//!
+//! impl Hash for A {
+//!     fn hash<H>(&self, digest: &mut H)
+//!     where H: EndianInput {
+//!         hash_ip_addr(self.addr, digest);
+//!         hash_bool(self.foo, digest);
+//!     }
+//! }
+//! ```
+
 use super::{EndianInput, Hash};
 use digest;
 
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
 
+/// Feeds a boolean value as a byte to the digest function.
+///
+/// `false` is represented with byte 0, `true` is represented with byte 1.
 pub fn hash_bool_as_byte<H: digest::Input>(input: bool, digest: &mut H) {
     digest.process(&[input as u8]);
 }
 
+/// Feeds a Unicode character, encoded in UTF-8,
+/// to the digest function.
 pub fn hash_char_as_utf8<H: digest::Input>(input: char, digest: &mut H) {
     let mut buf = [0u8; 4];
     let encoded = input.encode_utf8(&mut buf);
     digest.process(encoded.as_bytes());
 }
 
+/// Feeds a Unicode character, encoded in UTF-16, to the digest function.
+///
+/// The UTF-16 code units are hashed in the byte order selected by the
+/// `EndianInput` implementation.
 pub fn hash_char_as_utf16<H: EndianInput>(input: char, digest: &mut H) {
     let mut buf = [0u16; 2];
     let encoded = input.encode_utf16(&mut buf);
@@ -31,15 +75,29 @@ pub fn hash_char_as_utf16<H: EndianInput>(input: char, digest: &mut H) {
     }
 }
 
+/// Feeds a Unicode character, encoded in UTF-32, to the digest function.
+///
+/// The UTF-32 representation is synonymous to UCS-4.
+/// The UTF-32 code units are hashed in the byte order selected by the
+/// `EndianInput` implementation.
 pub fn hash_char_as_utf32<H: EndianInput>(input: char, digest: &mut H) {
     digest.process_u32(input as u32);
 }
 
+/// Encodes a string in UTF-16 and feeds it to the digest function.
+///
+/// The UTF-16 code units are hashed in the byte order selected by the
+/// `EndianInput` implementation.
 pub fn hash_str_as_utf16<S, H>(input: S, digest: &mut H)
 where S: AsRef<str>, H: EndianInput {
     hash_str_as_utf16_impl(input.as_ref(), digest)
 }
 
+/// Encodes a string in UTF-16, prepended with a Byte Order Mark (U+FEFF)
+/// code point, and feeds it to the digest function.
+///
+/// The UTF-16 code units are hashed in the byte order selected by the
+/// `EndianInput` implementation.
 pub fn hash_str_as_utf16_with_bom<S, H>(input: S, digest: &mut H)
 where S: AsRef<str>, H: EndianInput {
     digest.process_u16(0xFEFF);
@@ -53,6 +111,7 @@ where H: EndianInput {
     });
 }
 
+/// Feeds an IP address in the network byte order to the digest function.
 pub fn hash_ip_addr_in_network_order<H>(
     addr: IpAddr,
     digest: &mut H
@@ -63,6 +122,7 @@ pub fn hash_ip_addr_in_network_order<H>(
     }
 }
 
+/// Feeds an IPv4 address in the network byte order to the digest function.
 pub fn hash_ipv4_addr_in_network_order<H>(
     addr: Ipv4Addr,
     digest: &mut H
@@ -70,6 +130,7 @@ pub fn hash_ipv4_addr_in_network_order<H>(
     digest.process(&addr.octets());
 }
 
+/// Feeds an IPv6 address in the network byte order to the digest function.
 pub fn hash_ipv6_addr_in_network_order<H>(
     addr: Ipv6Addr,
     digest: &mut H
@@ -77,6 +138,14 @@ pub fn hash_ipv6_addr_in_network_order<H>(
     digest.process(&addr.octets());
 }
 
+/// Computes the digest over a slice by feeding the slice's elements in the
+/// direct order to the digest function.
+///
+/// The slice, and the container it was obtained from, is thus made
+/// transparent to hashing. The implementer should take protection against
+/// potential second-preimage attacks by making sure that the digest for a
+/// compound data structure containing hashed slices is computed
+/// unambiguously from components' data.
 pub fn hash_slice_as_elements<T, H>(
     slice: &[T],
     digest: &mut H
