@@ -31,6 +31,10 @@ pub fn hash_char_as_utf16<H: EndianInput>(input: char, digest: &mut H) {
     }
 }
 
+pub fn hash_char_as_utf32<H: EndianInput>(input: char, digest: &mut H) {
+    digest.process_u32(input as u32);
+}
+
 pub fn hash_str_as_utf16<S, H>(input: S, digest: &mut H)
 where S: AsRef<str>, H: EndianInput {
     hash_str_as_utf16_impl(input.as_ref(), digest)
@@ -47,10 +51,6 @@ where H: EndianInput {
     for c in input.chars() {
         hash_char_as_utf16(c, digest);
     }
-}
-
-pub fn hash_char_as_ucs4<H: EndianInput>(input: char, digest: &mut H) {
-    digest.process_u32(input as u32);
 }
 
 pub fn hash_ip_addr_in_network_order<H>(
