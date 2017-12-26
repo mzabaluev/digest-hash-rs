@@ -48,9 +48,9 @@ where S: AsRef<str>, H: EndianInput {
 
 fn hash_str_as_utf16_impl<H>(input: &str, digest: &mut H)
 where H: EndianInput {
-    for c in input.chars() {
-        hash_char_as_utf16(c, digest);
-    }
+    input.encode_utf16().for_each(|c| {
+        digest.process_u16(c);
+    });
 }
 
 pub fn hash_ip_addr_in_network_order<H>(
