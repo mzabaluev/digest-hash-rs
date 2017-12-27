@@ -1,6 +1,6 @@
 # Stable cryptographic hashing for data structures
 
-This crate provides traits and utility types to facilitate stable
+This crate provides traits and utilities to facilitate stable
 cryptographic-grade hashing of data structures, interoperable with
 the cryptographic hash functions that conform to the API defined in
 crate [digest](https://crates.io/crates/digest).
@@ -79,8 +79,8 @@ of IP addresses is not available out of the box, because the representation
 format may, in principle, use various byte orders, and the representation
 of IPv6 addresses can make different choices about the constituent data
 units and their endianness.
-Commonly used representation choices, however, should be made available
-with utility functions or macros.
+Some commonly used representation choices are made available with helper
+functions defined in module `personality`.
 
 There is one principled choice that is made up front: the standard types
 representing linear byte containers (e.g. byte slices, `Vec<u8>`,
