@@ -154,3 +154,85 @@ pub fn hash_slice_as_elements<T, H>(
         elem.hash(digest);
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::hash_slice_as_elements as hash_slice;
+
+    use BigEndian;
+    use testmocks::{MockDigest, Hashable};
+
+    #[test]
+    fn u8_slice_hash() {
+        const TEST_DATA: &[u8] = &[b'A', b'B', b'C'];
+        let mut hasher = BigEndian::<MockDigest>::new();
+        hash_slice(TEST_DATA, &mut hasher);
+        let output = hasher.into_inner().bytes;
+        assert_eq!(output, TEST_DATA);
+    }
+
+    #[test]
+    fn i8_slice_hash() {
+        const TEST_DATA: &[i8] = &[-128, -127, -126];
+        let mut hasher = BigEndian::<MockDigest>::new();
+        hash_slice(TEST_DATA, &mut hasher);
+        let output = hasher.into_inner().bytes;
+        let expected: Vec<_> = TEST_DATA.iter()
+                                        .map(|c| { *c as u8 })
+                                        .collect();
+        assert_eq!(output, expected);
+    }
+
+    #[test]
+    fn u8_vec_hash() {
+        let test_vec = vec![b'A', b'B', b'C'];
+        let mut hasher = BigEndian::<MockDigest>::new();
+        hash_slice(test_vec.as_slice(), &mut hasher);
+        let output = hasher.into_inner().bytes;
+        assert_eq!(output, test_vec);
+    }
+
+    #[test]
+    fn i8_vec_hash() {
+        let test_vec = vec![-128i8, -127i8, -126i8];
+        let mut hasher = BigEndian::<MockDigest>::new();
+        hash_slice(test_vec.as_slice(), &mut hasher);
+        let output = hasher.into_inner().bytes;
+        let expected: Vec<_> = test_vec.iter()
+                                        .map(|c| { *c as u8 })
+                                        .collect();
+        assert_eq!(output, expected);
+    }
+
+    #[test]
+    fn str_hash() {
+        const TEST_DATA: &str = "Hello";
+        let mut hasher = BigEndian::<MockDigest>::new();
+        hash_slice(TEST_DATA.as_bytes(), &mut hasher);
+        let output = hasher.into_inner().bytes;
+        assert_eq!(output, TEST_DATA.as_bytes());
+    }
+
+    #[test]
+    fn string_hash() {
+        let test_str = String::from("Hello");
+        let mut hasher = BigEndian::<MockDigest>::new();
+        hash_slice(test_str.as_bytes(), &mut hasher);
+        let output = hasher.into_inner().bytes;
+        assert_eq!(output, test_str.as_bytes());
+    }
+
+    #[test]
+    fn custom_slice_hash() {
+        let a = [
+            Hashable { foo: 0x0102, bar: 0x03040506 },
+            Hashable { foo: 0x0708, bar: 0x0A0B0C0D },
+        ];
+        let mut hasher = BigEndian::<MockDigest>::new();
+        hash_slice(&a[..], &mut hasher);
+        let output = hasher.into_inner().bytes;
+        assert_eq!(output,
+            [0x01, 0x02, 0x03, 0x04, 0x05, 0x06,
+             0x07, 0x08, 0x0A, 0x0B, 0x0C, 0x0D]);
+    }
+}
