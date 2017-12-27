@@ -157,10 +157,106 @@ pub fn hash_slice_as_elements<T, H>(
 
 #[cfg(test)]
 mod tests {
+    use super::hash_bool_as_byte as hash_bool;
+    use super::hash_char_as_utf8;
+    use super::hash_char_as_utf16;
+    use super::hash_char_as_utf32;
+    use super::hash_str_as_utf16;
+    use super::hash_str_as_utf16_with_bom;
+    use super::hash_ip_addr_in_network_order as hash_ip_addr;
+    use super::hash_ipv4_addr_in_network_order as hash_ipv4_addr;
+    use super::hash_ipv6_addr_in_network_order as hash_ipv6_addr;
     use super::hash_slice_as_elements as hash_slice;
 
     use BigEndian;
     use testmocks::{MockDigest, Hashable};
+
+    use std::net::{IpAddr, Ipv4Addr};
+
+    #[test]
+    fn bool_as_byte_hash() {
+        let mut hasher = MockDigest::default();
+        hash_bool(false, &mut hasher);
+        hash_bool(true, &mut hasher);
+        let output = hasher.bytes;
+        assert_eq!(output, [0, 1]);
+    }
+
+    #[test]
+    fn char_as_utf8_hash() {
+        let mut hasher = MockDigest::default();
+        hash_char_as_utf8('\u{1F9D6}', &mut hasher);
+        let output = hasher.bytes;
+        assert_eq!(output, b"\xf0\x9f\xa7\x96");
+    }
+
+    #[test]
+    fn char_as_utf16_hash() {
+        let mut hasher = BigEndian::<MockDigest>::new();
+        hash_char_as_utf16('\u{1F9D6}', &mut hasher);
+        let output = hasher.into_inner().bytes;
+        assert_eq!(output, b"\xd8\x3e\xdd\xd6");
+    }
+
+    #[test]
+    fn char_as_utf32_hash() {
+        let mut hasher = BigEndian::<MockDigest>::new();
+        hash_char_as_utf32('\u{1F9D6}', &mut hasher);
+        let output = hasher.into_inner().bytes;
+        assert_eq!(output, b"\x00\x01\xf9\xd6");
+    }
+
+    #[test]
+    fn str_as_utf16_hash() {
+        let mut hasher = BigEndian::<MockDigest>::new();
+        hash_str_as_utf16("I \u{1F499} \u{1F9D6}", &mut hasher);
+        let output = hasher.into_inner().bytes;
+        assert_eq!(output,
+                b"\x00I\x00 \xd8\x3d\xdc\x99\x00 \xd8\x3e\xdd\xd6");
+    }
+
+    #[test]
+    fn str_as_utf16_with_bom_hash() {
+        let mut hasher = BigEndian::<MockDigest>::new();
+        hash_str_as_utf16_with_bom("I \u{1F499} \u{1F9D6}", &mut hasher);
+        let output = hasher.into_inner().bytes;
+        assert_eq!(output,
+                b"\xfe\xff\x00I\x00 \xd8\x3d\xdc\x99\x00 \xd8\x3e\xdd\xd6");
+    }
+
+    #[test]
+    fn ipv4_addr_hash() {
+        let addr = Ipv4Addr::new(127, 0, 0, 1);
+        let mut hasher = MockDigest::default();
+        hash_ipv4_addr(addr, &mut hasher);
+        let output = hasher.bytes;
+        assert_eq!(output, [127, 0, 0, 1]);
+    }
+
+    #[test]
+    fn ipv6_addr_hash() {
+        let addr = "2001:db8::1".parse().unwrap();
+        let mut hasher = MockDigest::default();
+        hash_ipv6_addr(addr, &mut hasher);
+        let output = hasher.bytes;
+        assert_eq!(output,
+                [0x20, 0x01, 0x0d, 0xb8, 0, 0, 0, 0,
+                    0,    0,    0,    0, 0, 0, 0, 1]);
+    }
+
+    #[test]
+    fn ip_addr_hash() {
+        let mut hasher = MockDigest::default();
+        let addr = Ipv4Addr::new(127, 0, 0, 1);
+        hash_ip_addr(IpAddr::V4(addr), &mut hasher);
+        let addr = "2001:db8::1".parse().unwrap();
+        hash_ip_addr(IpAddr::V6(addr), &mut hasher);
+        let output = hasher.bytes;
+        assert_eq!(output,
+                [127, 0, 0, 1,
+                 0x20, 0x01, 0x0d, 0xb8, 0, 0, 0, 0,
+                    0,    0,    0,    0, 0, 0, 0, 1]);
+    }
 
     #[test]
     fn u8_slice_hash() {
