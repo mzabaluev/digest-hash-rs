@@ -52,6 +52,9 @@ pub extern crate byteorder;
 #[path = "opinionated.rs"]
 pub mod personality;
 
+#[cfg(test)]
+mod testmocks;
+
 use byteorder::ByteOrder;
 use digest::generic_array::{GenericArray, ArrayLength};
 
@@ -417,25 +420,6 @@ impl<'a, B: ?Sized> Hash for Cow<'a, B>
 #[cfg(test)]
 mod tests {
 
-    use digest;
-
-    #[derive(Debug)]
-    struct MockDigest {
-        bytes: Vec<u8>
-    }
-
-    impl Default for MockDigest {
-        fn default() -> Self {
-            MockDigest { bytes: Vec::new() }
-        }
-    }
-
-    impl digest::Input for MockDigest {
-        fn process(&mut self, input: &[u8]) {
-            self.bytes.extend_from_slice(input);
-        }
-    }
-
     // A function to help type inference in macros
     fn conv_with<T, F, R>(v: T, f: F) -> R
         where F: FnOnce(T) -> R
@@ -462,7 +446,7 @@ mod tests {
         use {BigEndian, LittleEndian, NetworkEndian};
         use EndianInput;
 
-        use super::MockDigest;
+        use testmocks::MockDigest;
         use super::conv_with;
 
         use std::mem;
@@ -590,8 +574,8 @@ mod tests {
     mod hash {
         use Hash;
 
-        use {BigEndian, LittleEndian, EndianInput};
-        use super::MockDigest;
+        use {BigEndian, LittleEndian};
+        use testmocks::{MockDigest, Hashable};
         use super::conv_with;
 
         use std::mem;
@@ -763,18 +747,6 @@ mod tests {
 
         test_generic_array_hash!(generic_array_u8_hash, u8);
         test_generic_array_hash!(generic_array_i8_hash, i8);
-
-        struct Hashable {
-            foo: u16,
-            bar: i32
-        }
-
-        impl Hash for Hashable {
-            fn hash<H: EndianInput>(&self, digest: &mut H) {
-                self.foo.hash(digest);
-                self.bar.hash(digest);
-            }
-        }
 
         #[test]
         fn custom_be_hash() {
