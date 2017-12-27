@@ -82,14 +82,6 @@ units and their endianness.
 Some commonly used representation choices are made available with helper
 functions defined in module `personality`.
 
-There is one principled choice that is made up front: the standard types
-representing linear byte containers (e.g. byte slices, `Vec<u8>`,
-UTF-8 strings) are transparent to hashing. This means that if one runs a
-digest algorithm over a chunked data stream, the hash output is independent
-from the parameters of chunking. To implement protection against preimage
-attacks misrepresenting the structured data, the implementer
-may need to do explicit "salting" using the structural information.
-
 ## License
 
 Licensed under either of

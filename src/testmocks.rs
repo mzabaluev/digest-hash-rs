@@ -27,6 +27,7 @@ impl digest::Input for MockDigest {
     }
 }
 
+#[derive(Clone)]
 pub struct Hashable {
     pub foo: u16,
     pub bar: i32
