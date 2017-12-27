@@ -39,3 +39,10 @@ impl Hash for Hashable {
         self.bar.hash(digest);
     }
 }
+
+// A function to help type inference in macros
+pub fn conv_with<T, F, R>(v: T, f: F) -> R
+    where F: FnOnce(T) -> R
+{
+    f(v)
+}
