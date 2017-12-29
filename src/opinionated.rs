@@ -22,8 +22,9 @@
 //! can be given short local names.
 //!
 //! ```
-//! use digest_hash::personality::hash_bool_as_byte             as hash_bool;
-//! use digest_hash::personality::hash_ip_addr_in_network_order as hash_ip_addr;
+//! use digest_hash::personality::hash_bool_as_byte as hash_bool;
+//! use digest_hash::personality::hash_ip_addr_as_ipv6_in_network_order
+//!     as hash_ip_addr;
 //! use digest_hash::{Hash, EndianInput};
 //! use std::net::IpAddr;
 //!
@@ -111,17 +112,6 @@ where H: EndianInput {
     });
 }
 
-/// Feeds an IP address in the network byte order to the digest function.
-pub fn hash_ip_addr_in_network_order<H>(
-    addr: IpAddr,
-    digest: &mut H
-) where H: digest::Input {
-    match addr {
-        IpAddr::V4(v4addr) => hash_ipv4_addr_in_network_order(v4addr, digest),
-        IpAddr::V6(v6addr) => hash_ipv6_addr_in_network_order(v6addr, digest)
-    }
-}
-
 /// Feeds an IPv4 address in the network byte order to the digest function.
 pub fn hash_ipv4_addr_in_network_order<H>(
     addr: Ipv4Addr,
@@ -136,6 +126,24 @@ pub fn hash_ipv6_addr_in_network_order<H>(
     digest: &mut H
 ) where H: digest::Input {
     digest.process(&addr.octets());
+}
+
+/// Feeds an IP address, canonicalized as an IPv6 address, in the network
+/// byte order to the digest function.
+///
+/// If the address is an IPv4 address, it is converted to the equivalent
+/// IPv4-mapped IPv6 address.
+pub fn hash_ip_addr_as_ipv6_in_network_order<H>(
+    addr: IpAddr,
+    digest: &mut H
+) where H: digest::Input {
+    match addr {
+        IpAddr::V4(addr) => {
+            let addr = addr.to_ipv6_mapped();
+            hash_ipv6_addr_in_network_order(addr, digest)
+        }
+        IpAddr::V6(addr) => hash_ipv6_addr_in_network_order(addr, digest)
+    }
 }
 
 /// Computes the digest over a slice by feeding the slice's elements in the
@@ -163,9 +171,9 @@ mod tests {
     use super::hash_char_as_utf32;
     use super::hash_str_as_utf16;
     use super::hash_str_as_utf16_with_bom;
-    use super::hash_ip_addr_in_network_order as hash_ip_addr;
     use super::hash_ipv4_addr_in_network_order as hash_ipv4_addr;
     use super::hash_ipv6_addr_in_network_order as hash_ipv6_addr;
+    use super::hash_ip_addr_as_ipv6_in_network_order as hash_ip_addr;
     use super::hash_slice_as_elements as hash_slice;
 
     use BigEndian;
@@ -245,7 +253,7 @@ mod tests {
     }
 
     #[test]
-    fn ip_addr_hash() {
+    fn ip_addr_as_ipv6_hash() {
         let mut hasher = MockDigest::default();
         let addr = Ipv4Addr::new(127, 0, 0, 1);
         hash_ip_addr(IpAddr::V4(addr), &mut hasher);
@@ -253,7 +261,7 @@ mod tests {
         hash_ip_addr(IpAddr::V6(addr), &mut hasher);
         let output = hasher.bytes;
         assert_eq!(output,
-                [127, 0, 0, 1,
+                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff, 127, 0, 0, 1,
                  0x20, 0x01, 0x0d, 0xb8, 0, 0, 0, 0,
                     0,    0,    0,    0, 0, 0, 0, 1]);
     }
