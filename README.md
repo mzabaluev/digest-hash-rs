@@ -21,14 +21,15 @@ designed to support in-process hash table collections and as such, they do
 not facilitate machine- and language-independent hashing. It's freely
 allowed to hash `isize`/`usize` values, and representation
 of many data types is considered an implementation detail: for example,
-the `Hash` implementation for a byte slice is different from feeding the
-slice content in sequence to an equivalent `Hasher`.
+the `Hash` implementation for a byte slice is both dependent on the target
+architecture and different from feeding the slice content in sequence to an
+equivalent `Hasher`.
 
 ### What's wrong with Serde?
 
-[Serde](https://serde.rs/) is a formidable data serialization framework
-designed to be universally usable. It is both widely used and recommended as
-the way to implement serialization for data types in the Rust ecosystem.
+[Serde](https://serde.rs/) is a full-fledged data serialization framework
+designed to be universally applicable. It is both widely used and recommended
+as the way to implement serialization for data types in the Rust ecosystem.
 Serde's design is amenable to implementing well-defined, cross-platform
 data representations. However, because it's a general-purpose framework,
 an implementation of `Serializer` suitable for cryptographic data signing
@@ -45,7 +46,7 @@ Consider this scenario:
 // crate a
 #[derive(Serialize)]
 pub struct A {
-     foo: char
+    foo: char
 }
 ```
 
@@ -63,7 +64,7 @@ An application wishing to calculate a hash of `B` through the hypothetical
 the inner `char` would affect the result, even though the `char` is an
 implementation detail of `A` and may be not easily visible to the
 application developer: she'd have to either look at the source of `a`
-if that is available, or find it in a serialization dump of `B` made in
+if that is available, or find it in a serialization dump of `A` or `B` made in
 a human-readable format.
 
 That said, a Serde backend to serialize arbitrary data structures for
@@ -76,9 +77,9 @@ The traits and their implementations provided by this crate aim for a
 middle ground: they enable platform-independent digest calculation, while
 avoiding any implicit data representation choices. For example, hashing
 of IP addresses is not available out of the box, because the representation
-format may, in principle, use various byte orders, and the representation
-of IPv6 addresses can make different choices about the constituent data
-units and their endianness.
+format may, in principle, use various byte orders, a way to mix IPv4 and IPv6
+is not set in stone, and the representation of IPv6 addresses can make
+different choices about the constituent data units and their endianness.
 Some commonly used representation choices are made available with helper
 functions defined in module `personality`.
 
