@@ -101,7 +101,8 @@ jobs:
             for file in ./target/debug/*; do
               if test -x $file; then
                 kcov --verify --exclude-pattern=tests \
-                    target/coverage/$(basename $file) \
+                  --exclude-path=src/testmocks.rs \
+                  target/coverage/$(basename $file) \
                   $file --quiet
               fi
             done
