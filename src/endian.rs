@@ -22,7 +22,7 @@ macro_rules! endian_method {
             let mut buf: [u8; $size]
                          = unsafe { mem::uninitialized() };
             <Self::ByteOrder>::$bo_func(&mut buf, n);
-            self.process(&buf);
+            self.input(&buf);
         }
     }
 }
@@ -45,16 +45,16 @@ pub trait EndianInput : digest::Input {
     ///
     /// This method is agnostic to the byte order, and is only provided
     /// for completeness.
-    fn process_u8(&mut self, n: u8) {
-        self.process(&[n]);
+    fn input_u8(&mut self, n: u8) {
+        self.input(&[n]);
     }
 
     /// Feeds a signed 8-bit value into the digest function.
     ///
     /// This method is agnostic to the byte order, and is only provided
     /// for completeness.
-    fn process_i8(&mut self, n: i8) {
-        self.process(&[n as u8]);
+    fn input_i8(&mut self, n: i8) {
+        self.input(&[n as u8]);
     }
 
     for_all_mi_words!(endian_method!);
@@ -124,7 +124,7 @@ impl<D, Bo> EndianInput for Endian<D, Bo>
 impl<D, Bo> digest::Input for Endian<D, Bo>
     where D: digest::Input
 {
-    fn process(&mut self, input: &[u8]) { self.inner.process(input) }
+    fn input<B: AsRef<[u8]>>(&mut self, data: B) { self.inner.input(data) }
 }
 
 impl<D, Bo> digest::BlockInput for Endian<D, Bo>
@@ -140,6 +140,14 @@ impl<D, Bo> digest::FixedOutput for Endian<D, Bo>
 
     fn fixed_result(self) -> GenericArray<u8, Self::OutputSize> {
         self.inner.fixed_result()
+    }
+}
+
+impl<D, Bo> digest::Reset for Endian<D, Bo>
+    where D: digest::Reset
+{
+    fn reset(&mut self) {
+        self.inner.reset()
     }
 }
 
@@ -303,23 +311,23 @@ mod tests {
     }
 
     test_byte_input!(
-            u8_be_input,  u8_le_input, process_u8, 0xA5u8);
+            u8_be_input,  u8_le_input, input_u8, 0xA5u8);
     test_byte_input!(
-            i8_be_input,  i8_le_input, process_i8, -128i8);
+            i8_be_input,  i8_le_input, input_i8, -128i8);
     test_word_input!(
-        u16_be_input, u16_le_input, process_u16, 0xA55Au16);
+        u16_be_input, u16_le_input, input_u16, 0xA55Au16);
     test_word_input!(
-        i16_be_input, i16_le_input, process_i16, -0x7FFEi16);
+        i16_be_input, i16_le_input, input_i16, -0x7FFEi16);
     test_word_input!(
-        u32_be_input, u32_le_input, process_u32, 0xA0B0_C0D0u32);
+        u32_be_input, u32_le_input, input_u32, 0xA0B0_C0D0u32);
     test_word_input!(
-        i32_be_input, i32_le_input, process_i32, -0x7F01_02FDi32);
+        i32_be_input, i32_le_input, input_i32, -0x7F01_02FDi32);
     test_word_input!(
-        u64_be_input, u64_le_input, process_u64, 0xA0B0_C0D0_0102_0304u64);
+        u64_be_input, u64_le_input, input_u64, 0xA0B0_C0D0_0102_0304u64);
     test_word_input!(
-        i64_be_input, i64_le_input, process_i64, -0x7F01_0203_0405_FFFDi64);
+        i64_be_input, i64_le_input, input_i64, -0x7F01_0203_0405_FFFDi64);
     test_float_input!(
-        f32_be_input, f32_le_input, process_f32, f32::consts::PI);
+        f32_be_input, f32_le_input, input_f32, f32::consts::PI);
     test_float_input!(
-        f64_be_input, f64_le_input, process_f64, f64::consts::PI);
+        f64_be_input, f64_le_input, input_f64, f64::consts::PI);
 }

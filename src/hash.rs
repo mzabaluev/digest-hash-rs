@@ -66,7 +66,7 @@ impl Hash for u8 {
     fn hash<H>(&self, digest: &mut H)
         where H: EndianInput
     {
-        digest.process_u8(*self);
+        digest.input_u8(*self);
     }
 }
 
@@ -74,7 +74,7 @@ impl Hash for i8 {
     fn hash<H>(&self, digest: &mut H)
         where H: EndianInput
     {
-        digest.process_i8(*self);
+        digest.input_i8(*self);
     }
 }
 
@@ -84,7 +84,7 @@ impl<N> Hash for GenericArray<u8, N>
     fn hash<H>(&self, digest: &mut H)
         where H: EndianInput
     {
-        digest.process(self.as_slice());
+        digest.input(self.as_slice());
     }
 }
 
@@ -95,7 +95,7 @@ impl<N> Hash for GenericArray<i8, N>
         where H: EndianInput
     {
         let bytes: &[u8] = unsafe { mem::transmute(self.as_slice()) };
-        digest.process(bytes);
+        digest.input(bytes);
     }
 }
 
@@ -247,7 +247,8 @@ mod tests {
                 use digest::generic_array::GenericArray;
                 use digest::generic_array::typenum::consts::U4;
 
-                let array = GenericArray::<$bt, U4>::generate(|n| { n as $bt });
+                let array = GenericArray::<$bt, U4>::from_exact_iter(
+                    (0..4).map(|n| { n as $bt })).unwrap();
                 let mut hasher = BigEndian::<MockDigest>::new();
                 array.hash(&mut hasher);
                 let output = hasher.into_inner().bytes;

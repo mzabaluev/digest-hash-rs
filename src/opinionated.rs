@@ -52,7 +52,7 @@ use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 ///
 /// `false` is represented with byte 0, `true` is represented with byte 1.
 pub fn hash_bool_as_byte<H: digest::Input>(input: bool, digest: &mut H) {
-    digest.process(&[input as u8]);
+    digest.input(&[input as u8]);
 }
 
 /// Feeds a Unicode character, encoded in UTF-8,
@@ -60,7 +60,7 @@ pub fn hash_bool_as_byte<H: digest::Input>(input: bool, digest: &mut H) {
 pub fn hash_char_as_utf8<H: digest::Input>(input: char, digest: &mut H) {
     let mut buf = [0u8; 4];
     let encoded = input.encode_utf8(&mut buf);
-    digest.process(encoded.as_bytes());
+    digest.input(encoded.as_bytes());
 }
 
 /// Feeds a Unicode character, encoded in UTF-16, to the digest function.
@@ -70,9 +70,9 @@ pub fn hash_char_as_utf8<H: digest::Input>(input: char, digest: &mut H) {
 pub fn hash_char_as_utf16<H: EndianInput>(input: char, digest: &mut H) {
     let mut buf = [0u16; 2];
     let encoded = input.encode_utf16(&mut buf);
-    digest.process_u16(encoded[0]);
+    digest.input_u16(encoded[0]);
     if encoded.len() > 1 {
-        digest.process_u16(encoded[1]);
+        digest.input_u16(encoded[1]);
     }
 }
 
@@ -82,7 +82,7 @@ pub fn hash_char_as_utf16<H: EndianInput>(input: char, digest: &mut H) {
 /// The UTF-32 code units are hashed in the byte order selected by the
 /// `EndianInput` implementation.
 pub fn hash_char_as_utf32<H: EndianInput>(input: char, digest: &mut H) {
-    digest.process_u32(input as u32);
+    digest.input_u32(input as u32);
 }
 
 /// Encodes a string in UTF-16 and feeds it to the digest function.
@@ -101,14 +101,14 @@ where S: AsRef<str>, H: EndianInput {
 /// `EndianInput` implementation.
 pub fn hash_str_as_utf16_with_bom<S, H>(input: S, digest: &mut H)
 where S: AsRef<str>, H: EndianInput {
-    digest.process_u16(0xFEFF);
+    digest.input_u16(0xFEFF);
     hash_str_as_utf16_impl(input.as_ref(), digest)
 }
 
 fn hash_str_as_utf16_impl<H>(input: &str, digest: &mut H)
 where H: EndianInput {
     input.encode_utf16().for_each(|c| {
-        digest.process_u16(c);
+        digest.input_u16(c);
     });
 }
 
@@ -117,7 +117,7 @@ pub fn hash_ipv4_addr_in_network_order<H>(
     addr: Ipv4Addr,
     digest: &mut H
 ) where H: digest::Input {
-    digest.process(&addr.octets());
+    digest.input(&addr.octets());
 }
 
 /// Feeds an IPv6 address in the network byte order to the digest function.
@@ -125,7 +125,7 @@ pub fn hash_ipv6_addr_in_network_order<H>(
     addr: Ipv6Addr,
     digest: &mut H
 ) where H: digest::Input {
-    digest.process(&addr.octets());
+    digest.input(&addr.octets());
 }
 
 /// Feeds an IP address, canonicalized as an IPv6 address, in the network

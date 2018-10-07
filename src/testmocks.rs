@@ -22,8 +22,8 @@ impl Default for MockDigest {
 }
 
 impl digest::Input for MockDigest {
-    fn process(&mut self, input: &[u8]) {
-        self.bytes.extend_from_slice(input);
+    fn input<B: AsRef<[u8]>>(&mut self, data: B) {
+        self.bytes.extend_from_slice(data.as_ref());
     }
 }
 
