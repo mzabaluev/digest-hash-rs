@@ -10,14 +10,14 @@
 
 macro_rules! for_all_mi_words {
     ($macro:ident!) => {
-        $macro!(u16, 2, input_u16, write_u16);
-        $macro!(i16, 2, input_i16, write_i16);
-        $macro!(u32, 4, input_u32, write_u32);
-        $macro!(i32, 4, input_i32, write_i32);
-        $macro!(u64, 8, input_u64, write_u64);
-        $macro!(i64, 8, input_i64, write_i64);
-        $macro!(f32, 4, input_f32, write_f32);
-        $macro!(f64, 8, input_f64, write_f64);
+        $macro!(u16, 2, input_u16, chain_u16, write_u16);
+        $macro!(i16, 2, input_i16, chain_i16, write_i16);
+        $macro!(u32, 4, input_u32, chain_u32, write_u32);
+        $macro!(i32, 4, input_i32, chain_i32, write_i32);
+        $macro!(u64, 8, input_u64, chain_u64, write_u64);
+        $macro!(i64, 8, input_i64, chain_i64, write_i64);
+        $macro!(f32, 4, input_f32, chain_f32, write_f32);
+        $macro!(f64, 8, input_f64, chain_f64, write_f64);
     }
 }
 

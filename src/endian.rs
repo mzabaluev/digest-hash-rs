@@ -16,13 +16,25 @@ use std::fmt::Debug;
 use std::marker;
 use std::mem;
 
-macro_rules! endian_method {
-    ($t:ty, $size:expr, $name:ident, $bo_func:ident) => {
-        fn $name(&mut self, n: $t) {
+macro_rules! endian_methods {
+    (
+        $t:ty,
+        $size:expr,
+        $input_method:ident,
+        $chain_method:ident,
+        $bo_func:ident
+    ) => {
+        fn $input_method(&mut self, n: $t) {
             let mut buf: [u8; $size]
                          = unsafe { mem::uninitialized() };
             <Self::ByteOrder>::$bo_func(&mut buf, n);
             self.input(&buf);
+        }
+
+        fn $chain_method(mut self, n: $t) -> Self
+        where Self: Sized {
+            self.$input_method(n);
+            self
         }
     }
 }
@@ -57,7 +69,25 @@ pub trait EndianInput : digest::Input {
         self.input(&[n as u8]);
     }
 
-    for_all_mi_words!(endian_method!);
+    /// Digest an unsigned 8-bit value in a chained manner.
+    ///
+    /// This method is agnostic to the byte order, and is only provided
+    /// for completeness.
+    fn chain_u8(self, n: u8) -> Self
+    where Self: Sized {
+        self.chain(&[n])
+    }
+
+    /// Digest a signed 8-bit value in a chained manner.
+    ///
+    /// This method is agnostic to the byte order, and is only provided
+    /// for completeness.
+    fn chain_i8(self, n: i8) -> Self
+    where Self: Sized {
+        self.chain(&[n as u8])
+    }
+
+    for_all_mi_words!(endian_methods!);
 }
 
 /// An adapter to provide digest functions with endian-awareness.
@@ -241,93 +271,113 @@ mod tests {
     macro_rules! test_endian_input {
         (   $test:ident,
             $Endian:ident,
-            $method:ident,
+            $input_method:ident,
+            $chain_method:ident,
             $val:expr,
             $to_endian_bits:expr) =>
         {
             #[test]
             fn $test() {
-                let mut hasher = $Endian::<MockDigest>::new();
-                hasher.$method($val);
-                let output = hasher.into_inner().bytes;
                 let val_bits = conv_with($val, $to_endian_bits);
                 let expected = bytes_from_endian!(val_bits);
+
+                let mut hasher = $Endian::<MockDigest>::new();
+                hasher.$input_method($val);
+                let output = hasher.into_inner().bytes;
+                assert_eq!(output, expected);
+
+                let hasher = $Endian::<MockDigest>::new();
+                let output = hasher.$chain_method($val).into_inner().bytes;
                 assert_eq!(output, expected);
             }
         }
     }
 
     macro_rules! test_byte_input {
-        (   $be_test:ident,
+        (
+            $be_test:ident,
             $le_test:ident,
-            $method:ident,
-            $val:expr) =>
-        {
+            $input_method:ident,
+            $chain_method:ident,
+            $val:expr
+        ) => {
             test_endian_input!(
-                $be_test, BigEndian, $method, $val,
-                |v| { v });
+                $be_test, BigEndian, $input_method, $chain_method, $val,
+                |v| { v }
+            );
             test_endian_input!(
-                $le_test, LittleEndian, $method, $val,
-                |v| { v });
+                $le_test, LittleEndian, $input_method, $chain_method, $val,
+                |v| { v }
+            );
         };
     }
 
     macro_rules! test_word_input {
-        (   $be_test:ident,
+        (
+            $be_test:ident,
             $le_test:ident,
-            $method:ident,
-            $val:expr) =>
-        {
+            $input_method:ident,
+            $chain_method:ident,
+            $val:expr
+        ) => {
             test_word_input!(
-                $be_test, $le_test, $method, $val,
-                |v| { v });
+                $be_test, $le_test, $input_method, $chain_method, $val,
+                |v| { v }
+            );
         };
 
-        (   $be_test:ident,
+        (
+            $be_test:ident,
             $le_test:ident,
-            $method:ident,
+            $input_method:ident,
+            $chain_method:ident,
             $val:expr,
-            $conv:expr) =>
-        {
+            $conv:expr
+        ) => {
             test_endian_input!(
-                $be_test, BigEndian, $method, $val,
-                |v| { conv_with(v, $conv).to_be() });
+                $be_test, BigEndian, $input_method, $chain_method, $val,
+                |v| { conv_with(v, $conv).to_be() }
+            );
             test_endian_input!(
-                $le_test, LittleEndian, $method, $val,
-                |v| { conv_with(v, $conv).to_le() });
+                $le_test, LittleEndian, $input_method, $chain_method, $val,
+                |v| { conv_with(v, $conv).to_le() }
+            );
         };
     }
 
     macro_rules! test_float_input {
-        (   $be_test:ident,
+        (
+            $be_test:ident,
             $le_test:ident,
-            $method:ident,
-            $val:expr) =>
-        {
+            $input_method:ident,
+            $chain_method:ident,
+            $val:expr
+        ) => {
             test_word_input!(
-                $be_test, $le_test, $method, $val,
-                |v| { v.to_bits() });
+                $be_test, $le_test, $input_method, $chain_method, $val,
+                |v| { v.to_bits() }
+            );
         }
     }
 
     test_byte_input!(
-            u8_be_input,  u8_le_input, input_u8, 0xA5u8);
+        u8_be_input, u8_le_input, input_u8, chain_u8, 0xA5u8);
     test_byte_input!(
-            i8_be_input,  i8_le_input, input_i8, -128i8);
+        i8_be_input, i8_le_input, input_i8, chain_i8, -128i8);
     test_word_input!(
-        u16_be_input, u16_le_input, input_u16, 0xA55Au16);
+        u16_be_input, u16_le_input, input_u16, chain_u16, 0xA55Au16);
     test_word_input!(
-        i16_be_input, i16_le_input, input_i16, -0x7FFEi16);
+        i16_be_input, i16_le_input, input_i16, chain_i16, -0x7FFEi16);
     test_word_input!(
-        u32_be_input, u32_le_input, input_u32, 0xA0B0_C0D0u32);
+        u32_be_input, u32_le_input, input_u32, chain_u32, 0xA0B0_C0D0u32);
     test_word_input!(
-        i32_be_input, i32_le_input, input_i32, -0x7F01_02FDi32);
+        i32_be_input, i32_le_input, input_i32, chain_i32, -0x7F01_02FDi32);
     test_word_input!(
-        u64_be_input, u64_le_input, input_u64, 0xA0B0_C0D0_0102_0304u64);
+        u64_be_input, u64_le_input, input_u64, chain_u64, 0xA0B0_C0D0_0102_0304u64);
     test_word_input!(
-        i64_be_input, i64_le_input, input_i64, -0x7F01_0203_0405_FFFDi64);
+        i64_be_input, i64_le_input, input_i64, chain_i64, -0x7F01_0203_0405_FFFDi64);
     test_float_input!(
-        f32_be_input, f32_le_input, input_f32, f32::consts::PI);
+        f32_be_input, f32_le_input, input_f32, chain_f32, f32::consts::PI);
     test_float_input!(
-        f64_be_input, f64_le_input, input_f64, f64::consts::PI);
+        f64_be_input, f64_le_input, input_f64, chain_f64, f64::consts::PI);
 }

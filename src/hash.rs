@@ -51,10 +51,10 @@ macro_rules! impl_hash_for {
 }
 
 macro_rules! impl_hash_for_mi_word {
-    ($t:ty, $_size:expr, $method:ident, $_bo_func:ident) => {
+    ($t:ty, $_size:expr, $input:ident, $_chain:ident, $_bo_func:ident) => {
         impl_hash_for! {
             (self: &$t, digest) {
-                digest.$method(*self);
+                digest.$input(*self);
             }
         }
     }
