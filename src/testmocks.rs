@@ -12,7 +12,7 @@ use Hash;
 
 #[derive(Debug)]
 pub struct MockDigest {
-    pub bytes: Vec<u8>
+    pub bytes: Vec<u8>,
 }
 
 impl Default for MockDigest {
@@ -30,7 +30,7 @@ impl digest::Input for MockDigest {
 #[derive(Clone)]
 pub struct Hashable {
     pub foo: u16,
-    pub bar: i32
+    pub bar: i32,
 }
 
 impl Hash for Hashable {
@@ -42,7 +42,8 @@ impl Hash for Hashable {
 
 // A function to help type inference in macros
 pub fn conv_with<T, F, R>(v: T, f: F) -> R
-    where F: FnOnce(T) -> R
+where
+    F: FnOnce(T) -> R,
 {
     f(v)
 }

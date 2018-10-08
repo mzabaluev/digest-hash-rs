@@ -46,16 +46,17 @@
 //! }
 //! ```
 
-pub extern crate digest;
 pub extern crate byteorder;
+pub extern crate digest;
 
-#[macro_use] mod macros;
+#[macro_use]
+mod macros;
 
 mod endian;
 mod hash;
 
-pub use endian::{Endian, EndianInput};
 pub use endian::{BigEndian, LittleEndian, NetworkEndian};
+pub use endian::{Endian, EndianInput};
 pub use hash::Hash;
 
 #[path = "opinionated.rs"]

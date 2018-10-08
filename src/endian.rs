@@ -44,14 +44,13 @@ macro_rules! endian_methods {
 /// `EndianInput` provides methods to process machine-independent values
 /// of bit widths larger than 8 bit. The values are serialized with the
 /// byte order which is defined in the associated type `ByteOrder`.
-pub trait EndianInput : digest::Input {
-
+pub trait EndianInput: digest::Input {
     /// The byte order this implementation provides.
     ///
     /// This type binding determines the "endianness" of how integer
     /// and floating-point values are serialized by this implementation
     /// towards computation of the digest.
-    type ByteOrder : ByteOrder;
+    type ByteOrder: ByteOrder;
 
     /// Feeds an unsigned 8-bit value into the digest function.
     ///
@@ -74,7 +73,9 @@ pub trait EndianInput : digest::Input {
     /// This method is agnostic to the byte order, and is only provided
     /// for completeness.
     fn chain_u8(self, n: u8) -> Self
-    where Self: Sized {
+    where
+        Self: Sized,
+    {
         self.chain(&[n])
     }
 
@@ -83,7 +84,9 @@ pub trait EndianInput : digest::Input {
     /// This method is agnostic to the byte order, and is only provided
     /// for completeness.
     fn chain_i8(self, n: i8) -> Self
-    where Self: Sized {
+    where
+        Self: Sized,
+    {
         self.chain(&[n as u8])
     }
 
@@ -94,7 +97,7 @@ pub trait EndianInput : digest::Input {
 #[derive(Clone)]
 pub struct Endian<D, Bo> {
     inner: D,
-    phantom: marker::PhantomData<Bo>
+    phantom: marker::PhantomData<Bo>,
 }
 
 /// A type alias for `Endian` specialized for big endian byte order.
@@ -113,7 +116,8 @@ pub type LittleEndian<D> = Endian<D, byteorder::LittleEndian>;
 pub type NetworkEndian<D> = BigEndian<D>;
 
 impl<D, Bo> Endian<D, Bo>
-    where Bo: ByteOrder
+where
+    Bo: ByteOrder,
 {
     /// Returns a string describing the byte order used by this
     /// `Endian` type instance.
@@ -128,43 +132,50 @@ impl<D, Bo> Endian<D, Bo>
         match le {
             0x01020304 => "LittleEndian",
             0x04030201 => "BigEndian",
-            _ => "unknown byte order"
+            _ => "unknown byte order",
         }
     }
 }
 
 impl<D, Bo> Debug for Endian<D, Bo>
-    where D: Debug,
-          Bo: ByteOrder
+where
+    D: Debug,
+    Bo: ByteOrder,
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         f.debug_struct(Self::byte_order_str())
-         .field("digest", &self.inner)
-         .finish()
+            .field("digest", &self.inner)
+            .finish()
     }
 }
 
 impl<D, Bo> EndianInput for Endian<D, Bo>
-    where D: digest::Input,
-          Bo: ByteOrder
+where
+    D: digest::Input,
+    Bo: ByteOrder,
 {
     type ByteOrder = Bo;
 }
 
 impl<D, Bo> digest::Input for Endian<D, Bo>
-    where D: digest::Input
+where
+    D: digest::Input,
 {
-    fn input<B: AsRef<[u8]>>(&mut self, data: B) { self.inner.input(data) }
+    fn input<B: AsRef<[u8]>>(&mut self, data: B) {
+        self.inner.input(data)
+    }
 }
 
 impl<D, Bo> digest::BlockInput for Endian<D, Bo>
-    where D: digest::BlockInput
+where
+    D: digest::BlockInput,
 {
     type BlockSize = D::BlockSize;
 }
 
 impl<D, Bo> digest::FixedOutput for Endian<D, Bo>
-    where D: digest::FixedOutput
+where
+    D: digest::FixedOutput,
 {
     type OutputSize = D::OutputSize;
 
@@ -174,7 +185,8 @@ impl<D, Bo> digest::FixedOutput for Endian<D, Bo>
 }
 
 impl<D, Bo> digest::Reset for Endian<D, Bo>
-    where D: digest::Reset
+where
+    D: digest::Reset,
 {
     fn reset(&mut self) {
         self.inner.reset()
@@ -182,9 +194,10 @@ impl<D, Bo> digest::Reset for Endian<D, Bo>
 }
 
 impl<D, Bo> Endian<D, Bo>
-    where D: digest::Input,
-          D: Default,
-          Bo: ByteOrder
+where
+    D: digest::Input,
+    D: Default,
+    Bo: ByteOrder,
 {
     /// Constructs an instance of an endian-aware hasher.
     ///
@@ -201,44 +214,49 @@ impl<D, Bo> Endian<D, Bo>
     pub fn new() -> Self {
         Endian {
             inner: D::default(),
-            phantom: marker::PhantomData
+            phantom: marker::PhantomData,
         }
     }
 }
 
 impl<D, Bo> Default for Endian<D, Bo>
-    where D: digest::Input,
-          D: Default,
-          Bo: ByteOrder
+where
+    D: digest::Input,
+    D: Default,
+    Bo: ByteOrder,
 {
-    fn default() -> Self { Self::new() }
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl<D, Bo> From<D> for Endian<D, Bo>
-    where D: digest::Input,
-          Bo: ByteOrder
+where
+    D: digest::Input,
+    Bo: ByteOrder,
 {
     fn from(digest: D) -> Self {
         Endian {
             inner: digest,
-            phantom: marker::PhantomData
+            phantom: marker::PhantomData,
         }
     }
 }
 
 impl<D, Bo> Endian<D, Bo> {
     /// Consumes self and returns the underlying digest implementation.
-    pub fn into_inner(self) -> D { self.inner }
+    pub fn into_inner(self) -> D {
+        self.inner
+    }
 }
-
 
 #[cfg(test)]
 mod tests {
-    use {BigEndian, LittleEndian, NetworkEndian};
     use EndianInput;
+    use {BigEndian, LittleEndian, NetworkEndian};
 
-    use testmocks::MockDigest;
     use testmocks::conv_with;
+    use testmocks::MockDigest;
 
     use std::mem;
     use std::{f32, f64};
@@ -249,33 +267,34 @@ mod tests {
     }
 
     macro_rules! test_endian_debug {
-        (   $test:ident,
-            $Endian:ident) =>
-        {
+        (
+            $test:ident,
+            $Endian:ident
+        ) => {
             #[test]
             fn $test() {
-                assert_eq!($Endian::<MockDigest>::byte_order_str(),
-                            stringify!($Endian));
+                assert_eq!($Endian::<MockDigest>::byte_order_str(), stringify!($Endian));
                 let hasher = $Endian::<MockDigest>::new();
                 let repr = format!("{:?}", hasher);
                 assert!(repr.starts_with(stringify!($Endian)));
                 assert!(repr.contains("MockDigest"));
                 assert!(!repr.contains("PhantomData"));
             }
-        }
+        };
     }
 
     test_endian_debug!(debug_be, BigEndian);
     test_endian_debug!(debug_le, LittleEndian);
 
     macro_rules! test_endian_input {
-        (   $test:ident,
+        (
+            $test:ident,
             $Endian:ident,
             $input_method:ident,
             $chain_method:ident,
             $val:expr,
-            $to_endian_bits:expr) =>
-        {
+            $to_endian_bits:expr
+        ) => {
             #[test]
             fn $test() {
                 let val_bits = conv_with($val, $to_endian_bits);
@@ -290,7 +309,7 @@ mod tests {
                 let output = hasher.$chain_method($val).into_inner().bytes;
                 assert_eq!(output, expected);
             }
-        }
+        };
     }
 
     macro_rules! test_byte_input {
@@ -302,12 +321,20 @@ mod tests {
             $val:expr
         ) => {
             test_endian_input!(
-                $be_test, BigEndian, $input_method, $chain_method, $val,
-                |v| { v }
+                $be_test,
+                BigEndian,
+                $input_method,
+                $chain_method,
+                $val,
+                |v| v
             );
             test_endian_input!(
-                $le_test, LittleEndian, $input_method, $chain_method, $val,
-                |v| { v }
+                $le_test,
+                LittleEndian,
+                $input_method,
+                $chain_method,
+                $val,
+                |v| v
             );
         };
     }
@@ -321,8 +348,12 @@ mod tests {
             $val:expr
         ) => {
             test_word_input!(
-                $be_test, $le_test, $input_method, $chain_method, $val,
-                |v| { v }
+                $be_test,
+                $le_test,
+                $input_method,
+                $chain_method,
+                $val,
+                |v| v
             );
         };
 
@@ -335,12 +366,20 @@ mod tests {
             $conv:expr
         ) => {
             test_endian_input!(
-                $be_test, BigEndian, $input_method, $chain_method, $val,
-                |v| { conv_with(v, $conv).to_be() }
+                $be_test,
+                BigEndian,
+                $input_method,
+                $chain_method,
+                $val,
+                |v| conv_with(v, $conv).to_be()
             );
             test_endian_input!(
-                $le_test, LittleEndian, $input_method, $chain_method, $val,
-                |v| { conv_with(v, $conv).to_le() }
+                $le_test,
+                LittleEndian,
+                $input_method,
+                $chain_method,
+                $val,
+                |v| conv_with(v, $conv).to_le()
             );
         };
     }
@@ -354,30 +393,60 @@ mod tests {
             $val:expr
         ) => {
             test_word_input!(
-                $be_test, $le_test, $input_method, $chain_method, $val,
-                |v| { v.to_bits() }
+                $be_test,
+                $le_test,
+                $input_method,
+                $chain_method,
+                $val,
+                |v| v.to_bits()
             );
-        }
+        };
     }
 
-    test_byte_input!(
-        u8_be_input, u8_le_input, input_u8, chain_u8, 0xA5u8);
-    test_byte_input!(
-        i8_be_input, i8_le_input, input_i8, chain_i8, -128i8);
+    test_byte_input!(u8_be_input, u8_le_input, input_u8, chain_u8, 0xA5u8);
+    test_byte_input!(i8_be_input, i8_le_input, input_i8, chain_i8, -128i8);
+    test_word_input!(u16_be_input, u16_le_input, input_u16, chain_u16, 0xA55Au16);
+    test_word_input!(i16_be_input, i16_le_input, input_i16, chain_i16, -0x7FFEi16);
     test_word_input!(
-        u16_be_input, u16_le_input, input_u16, chain_u16, 0xA55Au16);
+        u32_be_input,
+        u32_le_input,
+        input_u32,
+        chain_u32,
+        0xA0B0_C0D0u32
+    );
     test_word_input!(
-        i16_be_input, i16_le_input, input_i16, chain_i16, -0x7FFEi16);
+        i32_be_input,
+        i32_le_input,
+        input_i32,
+        chain_i32,
+        -0x7F01_02FDi32
+    );
     test_word_input!(
-        u32_be_input, u32_le_input, input_u32, chain_u32, 0xA0B0_C0D0u32);
+        u64_be_input,
+        u64_le_input,
+        input_u64,
+        chain_u64,
+        0xA0B0_C0D0_0102_0304u64
+    );
     test_word_input!(
-        i32_be_input, i32_le_input, input_i32, chain_i32, -0x7F01_02FDi32);
-    test_word_input!(
-        u64_be_input, u64_le_input, input_u64, chain_u64, 0xA0B0_C0D0_0102_0304u64);
-    test_word_input!(
-        i64_be_input, i64_le_input, input_i64, chain_i64, -0x7F01_0203_0405_FFFDi64);
+        i64_be_input,
+        i64_le_input,
+        input_i64,
+        chain_i64,
+        -0x7F01_0203_0405_FFFDi64
+    );
     test_float_input!(
-        f32_be_input, f32_le_input, input_f32, chain_f32, f32::consts::PI);
+        f32_be_input,
+        f32_le_input,
+        input_f32,
+        chain_f32,
+        f32::consts::PI
+    );
     test_float_input!(
-        f64_be_input, f64_le_input, input_f64, chain_f64, f64::consts::PI);
+        f64_be_input,
+        f64_le_input,
+        input_f64,
+        chain_f64,
+        f64::consts::PI
+    );
 }

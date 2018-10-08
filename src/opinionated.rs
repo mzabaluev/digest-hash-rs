@@ -47,7 +47,6 @@ use digest;
 
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
-
 /// Feeds a boolean value as a byte to the digest function.
 ///
 /// `false` is represented with byte 0, `true` is represented with byte 1.
@@ -90,7 +89,10 @@ pub fn hash_char_as_utf32<H: EndianInput>(input: char, digest: &mut H) {
 /// The UTF-16 code units are hashed in the byte order selected by the
 /// `EndianInput` implementation.
 pub fn hash_str_as_utf16<S, H>(input: S, digest: &mut H)
-where S: AsRef<str>, H: EndianInput {
+where
+    S: AsRef<str>,
+    H: EndianInput,
+{
     hash_str_as_utf16_impl(input.as_ref(), digest)
 }
 
@@ -100,31 +102,36 @@ where S: AsRef<str>, H: EndianInput {
 /// The UTF-16 code units are hashed in the byte order selected by the
 /// `EndianInput` implementation.
 pub fn hash_str_as_utf16_with_bom<S, H>(input: S, digest: &mut H)
-where S: AsRef<str>, H: EndianInput {
+where
+    S: AsRef<str>,
+    H: EndianInput,
+{
     digest.input_u16(0xFEFF);
     hash_str_as_utf16_impl(input.as_ref(), digest)
 }
 
 fn hash_str_as_utf16_impl<H>(input: &str, digest: &mut H)
-where H: EndianInput {
+where
+    H: EndianInput,
+{
     input.encode_utf16().for_each(|c| {
         digest.input_u16(c);
     });
 }
 
 /// Feeds an IPv4 address in the network byte order to the digest function.
-pub fn hash_ipv4_addr_in_network_order<H>(
-    addr: Ipv4Addr,
-    digest: &mut H
-) where H: digest::Input {
+pub fn hash_ipv4_addr_in_network_order<H>(addr: Ipv4Addr, digest: &mut H)
+where
+    H: digest::Input,
+{
     digest.input(&addr.octets());
 }
 
 /// Feeds an IPv6 address in the network byte order to the digest function.
-pub fn hash_ipv6_addr_in_network_order<H>(
-    addr: Ipv6Addr,
-    digest: &mut H
-) where H: digest::Input {
+pub fn hash_ipv6_addr_in_network_order<H>(addr: Ipv6Addr, digest: &mut H)
+where
+    H: digest::Input,
+{
     digest.input(&addr.octets());
 }
 
@@ -133,16 +140,16 @@ pub fn hash_ipv6_addr_in_network_order<H>(
 ///
 /// If the address is an IPv4 address, it is converted to the equivalent
 /// IPv4-mapped IPv6 address.
-pub fn hash_ip_addr_as_ipv6_in_network_order<H>(
-    addr: IpAddr,
-    digest: &mut H
-) where H: digest::Input {
+pub fn hash_ip_addr_as_ipv6_in_network_order<H>(addr: IpAddr, digest: &mut H)
+where
+    H: digest::Input,
+{
     match addr {
         IpAddr::V4(addr) => {
             let addr = addr.to_ipv6_mapped();
             hash_ipv6_addr_in_network_order(addr, digest)
         }
-        IpAddr::V6(addr) => hash_ipv6_addr_in_network_order(addr, digest)
+        IpAddr::V6(addr) => hash_ipv6_addr_in_network_order(addr, digest),
     }
 }
 
@@ -154,10 +161,11 @@ pub fn hash_ip_addr_as_ipv6_in_network_order<H>(
 /// potential second-preimage attacks by making sure that the digest for a
 /// compound data structure containing hashed slices is computed
 /// unambiguously from components' data.
-pub fn hash_slice_as_elements<T, H>(
-    slice: &[T],
-    digest: &mut H
-) where T: Hash, H: EndianInput {
+pub fn hash_slice_as_elements<T, H>(slice: &[T], digest: &mut H)
+where
+    T: Hash,
+    H: EndianInput,
+{
     for elem in slice {
         elem.hash(digest);
     }
@@ -166,18 +174,18 @@ pub fn hash_slice_as_elements<T, H>(
 #[cfg(test)]
 mod tests {
     use super::hash_bool_as_byte as hash_bool;
-    use super::hash_char_as_utf8;
     use super::hash_char_as_utf16;
     use super::hash_char_as_utf32;
-    use super::hash_str_as_utf16;
-    use super::hash_str_as_utf16_with_bom;
+    use super::hash_char_as_utf8;
+    use super::hash_ip_addr_as_ipv6_in_network_order as hash_ip_addr;
     use super::hash_ipv4_addr_in_network_order as hash_ipv4_addr;
     use super::hash_ipv6_addr_in_network_order as hash_ipv6_addr;
-    use super::hash_ip_addr_as_ipv6_in_network_order as hash_ip_addr;
     use super::hash_slice_as_elements as hash_slice;
+    use super::hash_str_as_utf16;
+    use super::hash_str_as_utf16_with_bom;
 
+    use testmocks::{Hashable, MockDigest};
     use BigEndian;
-    use testmocks::{MockDigest, Hashable};
 
     use std::net::{IpAddr, Ipv4Addr};
 
@@ -219,8 +227,7 @@ mod tests {
         let mut hasher = BigEndian::<MockDigest>::new();
         hash_str_as_utf16("I \u{1F499} \u{1F9D6}", &mut hasher);
         let output = hasher.into_inner().bytes;
-        assert_eq!(output,
-                b"\x00I\x00 \xd8\x3d\xdc\x99\x00 \xd8\x3e\xdd\xd6");
+        assert_eq!(output, b"\x00I\x00 \xd8\x3d\xdc\x99\x00 \xd8\x3e\xdd\xd6");
     }
 
     #[test]
@@ -228,8 +235,10 @@ mod tests {
         let mut hasher = BigEndian::<MockDigest>::new();
         hash_str_as_utf16_with_bom("I \u{1F499} \u{1F9D6}", &mut hasher);
         let output = hasher.into_inner().bytes;
-        assert_eq!(output,
-                b"\xfe\xff\x00I\x00 \xd8\x3d\xdc\x99\x00 \xd8\x3e\xdd\xd6");
+        assert_eq!(
+            output,
+            b"\xfe\xff\x00I\x00 \xd8\x3d\xdc\x99\x00 \xd8\x3e\xdd\xd6"
+        );
     }
 
     #[test]
@@ -247,9 +256,10 @@ mod tests {
         let mut hasher = MockDigest::default();
         hash_ipv6_addr(addr, &mut hasher);
         let output = hasher.bytes;
-        assert_eq!(output,
-                [0x20, 0x01, 0x0d, 0xb8, 0, 0, 0, 0,
-                    0,    0,    0,    0, 0, 0, 0, 1]);
+        assert_eq!(
+            output,
+            [0x20, 0x01, 0x0d, 0xb8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1]
+        );
     }
 
     #[test]
@@ -260,10 +270,13 @@ mod tests {
         let addr = "2001:db8::1".parse().unwrap();
         hash_ip_addr(IpAddr::V6(addr), &mut hasher);
         let output = hasher.bytes;
-        assert_eq!(output,
-                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff, 127, 0, 0, 1,
-                 0x20, 0x01, 0x0d, 0xb8, 0, 0, 0, 0,
-                    0,    0,    0,    0, 0, 0, 0, 1]);
+        assert_eq!(
+            output,
+            [
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff, 127, 0, 0, 1, 0x20, 0x01, 0x0d, 0xb8, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1
+            ]
+        );
     }
 
     #[test]
@@ -281,9 +294,7 @@ mod tests {
         let mut hasher = BigEndian::<MockDigest>::new();
         hash_slice(TEST_DATA, &mut hasher);
         let output = hasher.into_inner().bytes;
-        let expected: Vec<_> = TEST_DATA.iter()
-                                        .map(|c| { *c as u8 })
-                                        .collect();
+        let expected: Vec<_> = TEST_DATA.iter().map(|c| *c as u8).collect();
         assert_eq!(output, expected);
     }
 
@@ -302,9 +313,7 @@ mod tests {
         let mut hasher = BigEndian::<MockDigest>::new();
         hash_slice(test_vec.as_slice(), &mut hasher);
         let output = hasher.into_inner().bytes;
-        let expected: Vec<_> = test_vec.iter()
-                                        .map(|c| { *c as u8 })
-                                        .collect();
+        let expected: Vec<_> = test_vec.iter().map(|c| *c as u8).collect();
         assert_eq!(output, expected);
     }
 
@@ -329,14 +338,21 @@ mod tests {
     #[test]
     fn custom_slice_hash() {
         let a = [
-            Hashable { foo: 0x0102, bar: 0x03040506 },
-            Hashable { foo: 0x0708, bar: 0x0A0B0C0D },
+            Hashable {
+                foo: 0x0102,
+                bar: 0x03040506,
+            },
+            Hashable {
+                foo: 0x0708,
+                bar: 0x0A0B0C0D,
+            },
         ];
         let mut hasher = BigEndian::<MockDigest>::new();
         hash_slice(&a[..], &mut hasher);
         let output = hasher.into_inner().bytes;
-        assert_eq!(output,
-            [0x01, 0x02, 0x03, 0x04, 0x05, 0x06,
-             0x07, 0x08, 0x0A, 0x0B, 0x0C, 0x0D]);
+        assert_eq!(
+            output,
+            [0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x0A, 0x0B, 0x0C, 0x0D]
+        );
     }
 }
