@@ -1,5 +1,29 @@
 version: 2
 jobs:
+  rustfmt:
+    docker:
+      - image: rust:latest
+    working_directory: /mnt/crate
+    steps:
+      - checkout
+      - run:
+          name: Print rustfmt version
+          command: cargo fmt --version
+      - run:
+          name: Check formatting
+          command: cargo fmt -- --check
+  rustfmt_nightly:
+    docker:
+      - image: rust:nighly
+    working_directory: /mnt/crate
+    steps:
+      - checkout
+      - run:
+          name: Print rustfmt version
+          command: cargo fmt --version
+      - run:
+          name: Check formatting
+          command: cargo fmt -- --check
   cargo_fetch:
     docker:
       - image: rust:latest
@@ -133,6 +157,10 @@ jobs:
 
 workflows:
   version: 2
+  check_formatting:
+    jobs:
+      - rustfmt
+      - rustfmt_nightly
   test_all_and_coverage:
     jobs:
       - cargo_fetch
