@@ -7,7 +7,7 @@
 // except according to those terms.
 
 use digest;
-use EndianInput;
+use EndianUpdate;
 use Hash;
 
 #[derive(Debug)]
@@ -21,9 +21,9 @@ impl Default for MockDigest {
     }
 }
 
-impl digest::Input for MockDigest {
-    fn input<B: AsRef<[u8]>>(&mut self, data: B) {
-        self.bytes.extend_from_slice(data.as_ref());
+impl digest::Update for MockDigest {
+    fn update(&mut self, data: &[u8]) {
+        self.bytes.extend_from_slice(data);
     }
 }
 
@@ -34,7 +34,7 @@ pub struct Hashable {
 }
 
 impl Hash for Hashable {
-    fn hash<H: EndianInput>(&self, digest: &mut H) {
+    fn hash<H: EndianUpdate>(&self, digest: &mut H) {
         self.foo.hash(digest);
         self.bar.hash(digest);
     }

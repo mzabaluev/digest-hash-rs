@@ -25,7 +25,7 @@
 //! use digest_hash::personality::hash_bool_as_byte as hash_bool;
 //! use digest_hash::personality::hash_ip_addr_as_ipv6_in_network_order
 //!     as hash_ip_addr;
-//! use digest_hash::{Hash, EndianInput};
+//! use digest_hash::{Hash, EndianUpdate};
 //! use std::net::IpAddr;
 //!
 //! pub struct A {
@@ -35,14 +35,14 @@
 //!
 //! impl Hash for A {
 //!     fn hash<H>(&self, digest: &mut H)
-//!     where H: EndianInput {
+//!     where H: EndianUpdate {
 //!         hash_ip_addr(self.addr, digest);
 //!         hash_bool(self.foo, digest);
 //!     }
 //! }
 //! ```
 
-use super::{EndianInput, Hash};
+use super::{EndianUpdate, Hash};
 use digest;
 
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
@@ -50,28 +50,28 @@ use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 /// Feeds a boolean value as a byte to the digest function.
 ///
 /// `false` is represented with byte 0, `true` is represented with byte 1.
-pub fn hash_bool_as_byte<H: digest::Input>(input: bool, digest: &mut H) {
-    digest.input(&[input as u8]);
+pub fn hash_bool_as_byte<H: digest::Update>(data: bool, digest: &mut H) {
+    digest.update(&[data as u8]);
 }
 
 /// Feeds a Unicode character, encoded in UTF-8,
 /// to the digest function.
-pub fn hash_char_as_utf8<H: digest::Input>(input: char, digest: &mut H) {
+pub fn hash_char_as_utf8<H: digest::Update>(data: char, digest: &mut H) {
     let mut buf = [0u8; 4];
-    let encoded = input.encode_utf8(&mut buf);
-    digest.input(encoded.as_bytes());
+    let encoded = data.encode_utf8(&mut buf);
+    digest.update(encoded.as_bytes());
 }
 
 /// Feeds a Unicode character, encoded in UTF-16, to the digest function.
 ///
 /// The UTF-16 code units are hashed in the byte order selected by the
-/// `EndianInput` implementation.
-pub fn hash_char_as_utf16<H: EndianInput>(input: char, digest: &mut H) {
+/// `EndianUpdate` implementation.
+pub fn hash_char_as_utf16<H: EndianUpdate>(data: char, digest: &mut H) {
     let mut buf = [0u16; 2];
-    let encoded = input.encode_utf16(&mut buf);
-    digest.input_u16(encoded[0]);
+    let encoded = data.encode_utf16(&mut buf);
+    digest.update_u16(encoded[0]);
     if encoded.len() > 1 {
-        digest.input_u16(encoded[1]);
+        digest.update_u16(encoded[1]);
     }
 }
 
@@ -79,60 +79,60 @@ pub fn hash_char_as_utf16<H: EndianInput>(input: char, digest: &mut H) {
 ///
 /// The UTF-32 representation is synonymous to UCS-4.
 /// The UTF-32 code units are hashed in the byte order selected by the
-/// `EndianInput` implementation.
-pub fn hash_char_as_utf32<H: EndianInput>(input: char, digest: &mut H) {
-    digest.input_u32(input as u32);
+/// `EndianUpdate` implementation.
+pub fn hash_char_as_utf32<H: EndianUpdate>(data: char, digest: &mut H) {
+    digest.update_u32(data as u32);
 }
 
 /// Encodes a string in UTF-16 and feeds it to the digest function.
 ///
 /// The UTF-16 code units are hashed in the byte order selected by the
-/// `EndianInput` implementation.
-pub fn hash_str_as_utf16<S, H>(input: S, digest: &mut H)
+/// `EndianUpdate` implementation.
+pub fn hash_str_as_utf16<S, H>(data: S, digest: &mut H)
 where
     S: AsRef<str>,
-    H: EndianInput,
+    H: EndianUpdate,
 {
-    hash_str_as_utf16_impl(input.as_ref(), digest)
+    hash_str_as_utf16_impl(data.as_ref(), digest)
 }
 
 /// Encodes a string in UTF-16, prepended with a Byte Order Mark (U+FEFF)
 /// code point, and feeds it to the digest function.
 ///
 /// The UTF-16 code units are hashed in the byte order selected by the
-/// `EndianInput` implementation.
-pub fn hash_str_as_utf16_with_bom<S, H>(input: S, digest: &mut H)
+/// `EndianUpdate` implementation.
+pub fn hash_str_as_utf16_with_bom<S, H>(data: S, digest: &mut H)
 where
     S: AsRef<str>,
-    H: EndianInput,
+    H: EndianUpdate,
 {
-    digest.input_u16(0xFEFF);
-    hash_str_as_utf16_impl(input.as_ref(), digest)
+    digest.update_u16(0xFEFF);
+    hash_str_as_utf16_impl(data.as_ref(), digest)
 }
 
-fn hash_str_as_utf16_impl<H>(input: &str, digest: &mut H)
+fn hash_str_as_utf16_impl<H>(data: &str, digest: &mut H)
 where
-    H: EndianInput,
+    H: EndianUpdate,
 {
-    input.encode_utf16().for_each(|c| {
-        digest.input_u16(c);
+    data.encode_utf16().for_each(|c| {
+        digest.update_u16(c);
     });
 }
 
 /// Feeds an IPv4 address in the network byte order to the digest function.
 pub fn hash_ipv4_addr_in_network_order<H>(addr: Ipv4Addr, digest: &mut H)
 where
-    H: digest::Input,
+    H: digest::Update,
 {
-    digest.input(&addr.octets());
+    digest.update(&addr.octets());
 }
 
 /// Feeds an IPv6 address in the network byte order to the digest function.
 pub fn hash_ipv6_addr_in_network_order<H>(addr: Ipv6Addr, digest: &mut H)
 where
-    H: digest::Input,
+    H: digest::Update,
 {
-    digest.input(&addr.octets());
+    digest.update(&addr.octets());
 }
 
 /// Feeds an IP address, canonicalized as an IPv6 address, in the network
@@ -142,7 +142,7 @@ where
 /// IPv4-mapped IPv6 address.
 pub fn hash_ip_addr_as_ipv6_in_network_order<H>(addr: IpAddr, digest: &mut H)
 where
-    H: digest::Input,
+    H: digest::Update,
 {
     match addr {
         IpAddr::V4(addr) => {
@@ -164,7 +164,7 @@ where
 pub fn hash_slice_as_elements<T, H>(slice: &[T], digest: &mut H)
 where
     T: Hash,
-    H: EndianInput,
+    H: EndianUpdate,
 {
     for elem in slice {
         elem.hash(digest);
