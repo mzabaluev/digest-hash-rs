@@ -185,6 +185,19 @@ where
     }
 }
 
+impl<D, Bo> digest::FixedOutputReset for Endian<D, Bo>
+where
+    D: digest::FixedOutputReset,
+{
+    fn finalize_into_reset(&mut self, out: &mut digest::Output<Self>) {
+        self.inner.finalize_into_reset(out)
+    }
+
+    fn finalize_fixed_reset(&mut self) -> digest::Output<Self> {
+        self.inner.finalize_fixed_reset()
+    }
+}
+
 impl<D, Bo> digest::HashMarker for Endian<D, Bo> where D: digest::Update {}
 
 impl<D, Bo> digest::Reset for Endian<D, Bo>
