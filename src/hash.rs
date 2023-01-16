@@ -7,7 +7,7 @@
 // except according to those terms.
 
 use digest::generic_array::{ArrayLength, GenericArray};
-use EndianInput;
+use EndianUpdate;
 
 use std::borrow::{Cow, ToOwned};
 use std::mem;
@@ -31,10 +31,10 @@ pub trait Hash {
     /// Feeds this value into the given digest function.
     ///
     /// For multi-byte data member values, the byte order is imposed by the
-    /// implementation of `EndianInput` that the digest function provides.
+    /// implementation of `EndianUpdate` that the digest function provides.
     fn hash<H>(&self, digest: &mut H)
     where
-        H: EndianInput;
+        H: EndianUpdate;
 }
 
 macro_rules! impl_hash_for {
@@ -44,17 +44,17 @@ macro_rules! impl_hash_for {
     } => {
         impl Hash for $t {
             fn hash<H>(&$self, $digest: &mut H)
-                where H: EndianInput
+                where H: EndianUpdate
             $body
         }
     }
 }
 
 macro_rules! impl_hash_for_mi_word {
-    ($t:ty, $_size:expr, $input:ident, $_chain:ident, $_bo_func:ident) => {
+    ($t:ty, $_size:expr, $update:ident, $_chain:ident, $_bo_func:ident) => {
         impl_hash_for! {
             (self: &$t, digest) {
-                digest.$input(*self);
+                digest.$update(*self);
             }
         }
     };
@@ -65,18 +65,18 @@ for_all_mi_words!(impl_hash_for_mi_word!);
 impl Hash for u8 {
     fn hash<H>(&self, digest: &mut H)
     where
-        H: EndianInput,
+        H: EndianUpdate,
     {
-        digest.input_u8(*self);
+        digest.update_u8(*self);
     }
 }
 
 impl Hash for i8 {
     fn hash<H>(&self, digest: &mut H)
     where
-        H: EndianInput,
+        H: EndianUpdate,
     {
-        digest.input_i8(*self);
+        digest.update_i8(*self);
     }
 }
 
@@ -86,9 +86,9 @@ where
 {
     fn hash<H>(&self, digest: &mut H)
     where
-        H: EndianInput,
+        H: EndianUpdate,
     {
-        digest.input(self.as_slice());
+        digest.update(self.as_slice());
     }
 }
 
@@ -98,10 +98,10 @@ where
 {
     fn hash<H>(&self, digest: &mut H)
     where
-        H: EndianInput,
+        H: EndianUpdate,
     {
         let bytes: &[u8] = unsafe { mem::transmute(self.as_slice()) };
-        digest.input(bytes);
+        digest.update(bytes);
     }
 }
 
@@ -111,7 +111,7 @@ where
 {
     fn hash<H>(&self, digest: &mut H)
     where
-        H: EndianInput,
+        H: EndianUpdate,
     {
         (*self).hash(digest);
     }
@@ -125,7 +125,7 @@ macro_rules! impl_hash_for_gen_pointer {
         {
             fn hash<H>(&self, digest: &mut H)
             where
-                H: EndianInput,
+                H: EndianUpdate,
             {
                 (**self).hash(digest);
             }
@@ -145,7 +145,7 @@ where
 {
     fn hash<H>(&self, digest: &mut H)
     where
-        H: EndianInput,
+        H: EndianUpdate,
     {
         match *self {
             Cow::Borrowed(b) => b.hash(digest),
